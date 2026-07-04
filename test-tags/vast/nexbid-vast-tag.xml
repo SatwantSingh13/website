@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Ad id="nexbid-vast-tags-7s">
+    <InLine>
+      <AdSystem>Nexbid</AdSystem>
+      <AdTitle>Nexbid Vast Tags</AdTitle>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="nexbid-vast-tags-video" sequence="1">
+          <Linear>
+            <Duration>00:00:07</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/tracking/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://example.com/tracking/first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://example.com/tracking/midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://example.com/tracking/third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/tracking/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://nexbid.uk]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/webm" width="1280" height="720" bitrate="700" scalable="true" maintainAspectRatio="true"><![CDATA[nexbid-vast-tags.webm]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

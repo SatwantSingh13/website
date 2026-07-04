@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NexBanner VAST Then Banner Test</title>
+    <style>
+      body {
+        margin: 32px;
+        font-family: Arial, sans-serif;
+        color: #17202a;
+      }
+
+      main {
+        max-width: 860px;
+      }
+
+      #placement {
+        width: 300px;
+        height: 250px;
+        overflow: hidden;
+        background: #f3f4f6;
+        border: 1px solid #d7dde5;
+      }
+
+      video {
+        display: block;
+        width: 300px;
+        height: 250px;
+        background: #000;
+      }
+
+      .controls {
+        display: flex;
+        gap: 8px;
+        margin: 14px 0;
+      }
+
+      button {
+        height: 34px;
+        border: 0;
+        background: #0f766e;
+        color: #fff;
+        padding: 0 12px;
+        cursor: pointer;
+      }
+
+      code,
+      #log {
+        display: block;
+        max-width: 860px;
+        padding: 12px;
+        overflow: auto;
+        background: #111827;
+        color: #d1d5db;
+        font-family: Consolas, monospace;
+        font-size: 12px;
+      }
+
+      #log {
+        min-height: 120px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>VAST Video Then Banner JS</h1>
+      <p>This page loads the provided VAST tag first. After the video completes, the same placement is replaced with image 1, then refreshes to image 2 after 7 seconds.</p>
+
+      <section>
+        <div id="placement"></div>
+        <div class="controls">
+          <button id="restart">Restart VAST</button>
+          <button id="show-banner">Show banner now</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Tags Used</h2>
+        <p>VAST:</p>
+        <code id="vast-url">/test-tags/vast/nexbid-vast-tag.xml</code>
+        <p>Banner JS:</p>
+        <code>&lt;script src="/test-tags/display/display-300x250.js" data-target="placement" data-image-url="/test-tags/assets/display-1.png" data-image-url-2="/test-tags/assets/display-2.png" data-refresh-ms="7000"&gt;&lt;/script&gt;</code>
+      </section>
+
+      <section>
+        <h2>Event Log</h2>
+        <div id="log"></div>
+      </section>
+    </main>
+
+    <script>
+      const placement = document.getElementById("placement");
+      const logEl = document.getElementById("log");
+      const vastUrl = "/test-tags/vast/nexbid-vast-tag.xml";
+      const bannerJsUrl = "/test-tags/display/display-300x250.js";
+      const firstImageUrl = "/test-tags/assets/display-1.png";
+      const secondImageUrl = "/test-tags/assets/display-2.png";
+
+      function log(message) {
+        const line = document.createElement("div");
+        line.textContent = new Date().toLocaleTimeString() + "  " + message;
+        logEl.prepend(line);
+      }
+
+      async function startVastVideo() {
+        placement.innerHTML = "";
+        log("Requesting VAST: " + vastUrl);
+
+        const vastResponse = await fetch(vastUrl, { cache: "no-store" });
+        if (!vastResponse.ok) throw new Error("VAST request failed: " + vastResponse.status);
+
+        const vastXml = await vastResponse.text();
+        const vastDoc = new DOMParser().parseFromString(vastXml, "application/xml");
+        const mediaFile = Array.from(vastDoc.querySelectorAll("MediaFile")).find((node) => {
+          const type = node.getAttribute("type") || "";
+          return type.includes("mp4") || type.includes("webm");
+        }) || vastDoc.querySelector("MediaFile");
+        const mediaUrl = mediaFile && mediaFile.textContent && mediaFile.textContent.trim();
+        if (!mediaUrl) throw new Error("No playable MediaFile found in VAST.");
+        const playableUrl = new URL(mediaUrl, new URL(vastUrl, window.location.href)).href;
+
+        log("VAST loaded. Playing video: " + playableUrl);
+
+        const video = document.createElement("video");
+        video.src = playableUrl;
+        video.controls = true;
+        video.muted = true;
+        video.autoplay = true;
+        video.playsInline = true;
+
+        video.addEventListener("ended", () => {
+          log("Video complete. Loading banner image 1.");
+          loadBannerTag();
+        });
+
+        video.addEventListener("error", () => {
+          log("Video error. Loading banner JS fallback.");
+          loadBannerTag();
+        });
+
+        placement.appendChild(video);
+        await video.play().catch(() => {
+          log("Autoplay blocked. Use play button, or click Show banner now.");
+        });
+      }
+
+      function loadBannerTag() {
+        placement.innerHTML = "";
+        const script = document.createElement("script");
+        script.src = bannerJsUrl + "?cb=" + Date.now();
+        script.setAttribute("data-target", "placement");
+        script.setAttribute("data-image-url", firstImageUrl);
+        script.setAttribute("data-image-url-2", secondImageUrl);
+        script.setAttribute("data-refresh-ms", "7000");
+        script.setAttribute("data-click-url", "https://nexbid.com");
+        script.onload = () => {
+          log("Banner image 1 rendered.");
+          window.setTimeout(() => log("Banner refreshed to image 2 after 7 seconds."), 7000);
+        };
+        script.onerror = () => log("Banner JS failed to load.");
+        document.body.appendChild(script);
+      }
+
+      document.getElementById("restart").addEventListener("click", () => {
+        logEl.innerHTML = "";
+        startVastVideo().catch((error) => {
+          log(error.message);
+          loadBannerTag();
+        });
+      });
+
+      document.getElementById("show-banner").addEventListener("click", loadBannerTag);
+
+      startVastVideo().catch((error) => {
+        log(error.message);
+        loadBannerTag();
+      });
+    </script>
+  </body>
+</html>
