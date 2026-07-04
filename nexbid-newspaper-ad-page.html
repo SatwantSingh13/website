@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Market Ledger | Nexbid Feature</title>
+  <style>
+    :root {
+      --ink: #161616;
+      --muted: #626262;
+      --paper: #fbfaf6;
+      --line: #d9d3c8;
+      --accent: #b91c1c;
+      --ad-bg: #f3f5f8;
+      --ad-line: #aab3c2;
+      --max-page: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)),
+        repeating-linear-gradient(90deg, #f6f2e9 0, #f6f2e9 2px, #fbfaf6 2px, #fbfaf6 8px);
+      font-family: Georgia, "Times New Roman", serif;
+      padding-bottom: clamp(86px, 14vw, 118px);
+    }
+
+    .top-strip {
+      border-bottom: 1px solid var(--line);
+      background: #111;
+      color: #fff;
+      font: 700 0.76rem/1.2 Arial, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .top-strip-inner {
+      max-width: var(--max-page);
+      margin: 0 auto;
+      padding: 8px 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    header {
+      max-width: var(--max-page);
+      margin: 0 auto;
+      padding: 24px 18px 14px;
+      text-align: center;
+      border-bottom: 4px double var(--ink);
+    }
+
+    .masthead {
+      margin: 0;
+      font-size: clamp(2.35rem, 8vw, 5.8rem);
+      line-height: 0.86;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .tagline {
+      margin: 14px 0 0;
+      font: 700 0.8rem/1.4 Arial, sans-serif;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    nav {
+      max-width: var(--max-page);
+      margin: 0 auto;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: center;
+      gap: clamp(12px, 4vw, 42px);
+      flex-wrap: wrap;
+      font: 700 0.82rem/1 Arial, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    main {
+      max-width: var(--max-page);
+      margin: 0 auto;
+      padding: 24px 18px 34px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .lead-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(230px, 0.75fr);
+      gap: 24px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 24px;
+    }
+
+    .kicker {
+      color: var(--accent);
+      font: 800 0.78rem/1 Arial, sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 6vw, 4.7rem);
+      line-height: 0.94;
+      letter-spacing: -0.02em;
+    }
+
+    .dek {
+      margin: 16px 0 0;
+      color: #383838;
+      font-size: clamp(1.08rem, 2.4vw, 1.42rem);
+      line-height: 1.35;
+    }
+
+    .byline {
+      margin: 18px 0;
+      font: 700 0.85rem/1.4 Arial, sans-serif;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-art {
+      min-height: 310px;
+      border: 1px solid var(--ink);
+      background:
+        radial-gradient(circle at 72% 22%, rgba(185, 28, 28, 0.2), transparent 28%),
+        linear-gradient(135deg, #222 0 38%, #e7ded0 38% 42%, #b91c1c 42% 61%, #151515 61% 100%);
+      color: #fff;
+      display: grid;
+      place-items: end start;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-art::before {
+      content: "NEXBID";
+      position: absolute;
+      top: 18px;
+      right: -8px;
+      color: rgba(255, 255, 255, 0.16);
+      font: 900 clamp(3rem, 9vw, 6.5rem)/1 Arial, sans-serif;
+      letter-spacing: -0.08em;
+      transform: rotate(-8deg);
+    }
+
+    .hero-art span {
+      position: relative;
+      max-width: 230px;
+      font: 800 1.35rem/1.05 Arial, sans-serif;
+      text-transform: uppercase;
+    }
+
+    .article-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 26px;
+      margin-top: 24px;
+    }
+
+    article {
+      columns: 2 250px;
+      column-gap: 28px;
+    }
+
+    article p {
+      margin: 0 0 1em;
+      font-size: 1.05rem;
+      line-height: 1.62;
+    }
+
+    article p:first-of-type::first-letter {
+      float: left;
+      padding: 6px 8px 0 0;
+      font-size: 4.35rem;
+      line-height: 0.75;
+      font-weight: 700;
+    }
+
+    aside {
+      border-left: 1px solid var(--line);
+      padding-left: 20px;
+    }
+
+    .side-box {
+      border-top: 3px solid var(--ink);
+      padding-top: 12px;
+      margin-bottom: 24px;
+    }
+
+    .side-box h2,
+    .more-news h2 {
+      margin: 0 0 10px;
+      font: 900 1rem/1.2 Arial, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .side-box p,
+    .more-news p {
+      margin: 0;
+      color: #3f3f3f;
+      font-size: 0.98rem;
+      line-height: 1.45;
+    }
+
+    .ad-unit {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.65), rgba(255,255,255,0)),
+        var(--ad-bg);
+      border: 1px dashed var(--ad-line);
+      color: #172033;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ad-unit::after {
+      content: "Advertisement";
+      position: absolute;
+      top: 7px;
+      left: 9px;
+      color: #667085;
+      font: 700 0.58rem/1 Arial, sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .ad-300 {
+      width: min(300px, 100%);
+      aspect-ratio: 300 / 250;
+      margin: 0 auto 24px;
+    }
+
+    .ad-copy strong {
+      display: block;
+      font-size: clamp(1.1rem, 4vw, 1.55rem);
+      line-height: 1;
+      margin-bottom: 7px;
+      color: #111827;
+    }
+
+    .ad-copy span {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #b91c1c;
+    }
+
+    .more-news {
+      max-width: var(--max-page);
+      margin: 0 auto 26px;
+      padding: 0 18px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .news-card {
+      border-top: 1px solid var(--ink);
+      padding-top: 12px;
+    }
+
+    .news-card h3 {
+      margin: 0 0 8px;
+      font-size: 1.18rem;
+      line-height: 1.1;
+    }
+
+    .sticky-ad {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: min(100%, 970px);
+      height: clamp(70px, 12vw, 100px);
+      z-index: 20;
+      box-shadow: 0 -10px 26px rgba(0, 0, 0, 0.16);
+      border-style: solid;
+      border-bottom: 0;
+    }
+
+    .sticky-ad .ad-copy {
+      padding: 10px 48px;
+    }
+
+    .close-ad {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 28px;
+      height: 28px;
+      border: 1px solid #98a2b3;
+      background: #fff;
+      color: #111827;
+      cursor: pointer;
+      font: 800 1rem/1 Arial, sans-serif;
+    }
+
+    .close-ad:hover {
+      background: #111827;
+      color: #fff;
+    }
+
+    @media (max-width: 900px) {
+      main,
+      .lead-grid,
+      .article-layout,
+      .more-news {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        padding: 22px 0 0;
+      }
+
+      .ad-300 {
+        width: min(300px, 88vw);
+      }
+    }
+
+    @media (max-width: 560px) {
+      header {
+        padding-top: 18px;
+      }
+
+      nav {
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+      }
+
+      article {
+        columns: 1;
+      }
+
+      .hero-art {
+        min-height: 220px;
+      }
+
+      .sticky-ad {
+        width: 100%;
+        height: 74px;
+      }
+
+      .sticky-ad .ad-copy {
+        padding: 10px 42px 10px 12px;
+      }
+
+      .sticky-ad .ad-copy strong {
+        font-size: 1rem;
+      }
+
+      .sticky-ad .ad-copy span {
+        font-size: 0.66rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-strip">
+    <div class="top-strip-inner">
+      <span>Saturday, July 4, 2026</span>
+      <span>Independent Market & Technology Desk</span>
+    </div>
+  </div>
+
+  <header>
+    <h1 class="masthead">The Market Ledger</h1>
+    <p class="tagline">Commerce, Media, Platforms, and the People Building Them</p>
+  </header>
+
+  <nav aria-label="Sections">
+    <span>World</span>
+    <span>Business</span>
+    <span>Advertising</span>
+    <span>Technology</span>
+    <span>Markets</span>
+    <span>Opinion</span>
+  </nav>
+
+  <main>
+    <section>
+      <div class="lead-grid">
+        <div>
+          <div class="kicker">Advertising Technology</div>
+          <h1>Nexbid Pushes Smaller Publishers Toward a Faster Open Auction</h1>
+          <p class="dek">A fresh marketplace experiment from Nexbid is drawing attention for promising simpler ad buying, clearer reporting, and quicker campaign setup for independent media teams.</p>
+          <p class="byline">By Mira Coleman, Digital Markets Correspondent</p>
+        </div>
+        <div class="hero-art" role="img" aria-label="Abstract newspaper illustration for Nexbid advertising marketplace">
+          <span>Programmatic tools meet newsroom economics</span>
+        </div>
+      </div>
+
+      <div class="article-layout">
+        <article>
+          <p>Nexbid, a rising name in digital advertising infrastructure, is testing a marketplace model aimed at local publishers, specialist newsletters, and niche content studios that often find large ad exchanges difficult to manage. The company says its new approach focuses on quick onboarding, transparent bid activity, and ad formats that can be launched without a large operations team.</p>
+          <p>The timing is notable. Smaller publishers are under pressure to diversify revenue while preserving reader trust. Nexbid's pitch is that a cleaner auction interface can help editorial businesses sell display inventory, sponsored placements, and video demand without burying staff in dashboards.</p>
+          <p>Early testers describe the system as practical rather than flashy. Campaign managers can set creative sizes, review demand sources, and adjust floor prices from one workspace. Publishers, meanwhile, can see which placements are active and how performance changes across devices.</p>
+          <p>Industry analysts caution that the market is crowded and trust will matter as much as speed. Any platform that handles publisher inventory must prove that brand safety, payment reliability, and privacy controls are more than brochure language. Nexbid appears aware of that challenge, placing reporting and consent signals near the center of its product story.</p>
+          <p>For readers, the most visible change may be better-fitting ads. The company has been encouraging responsive placements that resize gracefully on desktop and mobile screens, reducing the awkward overflow and blank space that still haunt many news sites.</p>
+          <p>If Nexbid can keep its tools approachable while attracting quality demand, it could become a useful bridge between independent publishers and advertisers that want targeted reach without the complexity of enterprise ad stacks.</p>
+        </article>
+
+        <aside>
+          <div class="ad-unit ad-300" aria-label="300 by 250 Nexbid advertisement">
+            <div class="ad-copy">
+              <strong>Nexbid Ads</strong>
+              <span>300 x 250 responsive unit</span>
+            </div>
+          </div>
+
+          <div class="side-box">
+            <h2>Market Note</h2>
+            <p>Publishers are testing flexible ad units that resize across mobile and desktop screens while preserving readable editorial layouts.</p>
+          </div>
+
+          <div class="side-box">
+            <h2>What To Watch</h2>
+            <p>Demand quality, reporting clarity, and privacy-friendly measurement will determine whether newer ad platforms earn long-term trust.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <aside>
+      <div class="side-box">
+        <h2>Latest Briefs</h2>
+        <p>Regional media groups are expanding newsletters, podcasts, and sponsored research as display advertising becomes more selective.</p>
+      </div>
+      <div class="side-box">
+        <h2>Quote Board</h2>
+        <p>"The winning tools will be the ones publishers can understand before the second cup of coffee," said one media buyer.</p>
+      </div>
+      <div class="side-box">
+        <h2>Data Point</h2>
+        <p>Responsive creative remains a top request from advertisers seeking consistent delivery across phone, tablet, and desktop inventory.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="more-news" aria-label="More stories">
+    <div class="news-card">
+      <h3>Retail Brands Return to Contextual Buying</h3>
+      <p>Advertisers are renewing interest in article-level signals as privacy rules reshape campaign planning.</p>
+    </div>
+    <div class="news-card">
+      <h3>Newsrooms Rebuild Their Revenue Mix</h3>
+      <p>Subscriptions, live events, and smarter ad placements are becoming standard parts of the local media toolkit.</p>
+    </div>
+    <div class="news-card">
+      <h3>Mobile Layouts Get a Second Look</h3>
+      <p>Publishers are trimming heavy scripts and testing smaller sticky placements to improve reader experience.</p>
+    </div>
+  </section>
+
+  <div class="ad-unit sticky-ad" id="stickyAd" aria-label="Sticky bottom Nexbid advertisement">
+    <button class="close-ad" type="button" aria-label="Close sticky advertisement" onclick="document.getElementById('stickyAd').style.display='none'">×</button>
+    <div class="ad-copy">
+      <strong>Nexbid Bottom Sticky Ad</strong>
+      <span>Auto-resizes from mobile banner to desktop leaderboard</span>
+    </div>
+  </div>
+</body>
+</html>
