@@ -1,0 +1,448 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexbid | Global Advertising Solutions</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .hero-bg {
+            background-image: linear-gradient(rgba(2,6,23,0.8), rgba(2,6,23,0.9)), url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .cta-bg {
+            background-image: linear-gradient(rgba(6,182,212,0.85), rgba(37,99,235,0.85)), url('https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-white overflow-x-hidden">
+
+
+    <!-- Navbar -->
+    <nav class="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-lg border-b border-white/10">
+
+        <div class="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-12 py-5">
+
+            <h1 class="text-3xl font-extrabold text-cyan-400">
+                Nexbid
+            </h1>
+
+            <div class="hidden md:flex items-center gap-8 text-gray-300 font-medium">
+                <a href="#" class="hover:text-cyan-400 transition">Home</a>
+                <a href="#about" class="hover:text-cyan-400 transition">About</a>
+                <a href="#services" class="hover:text-cyan-400 transition">Services</a>
+                <a href="#partners" class="hover:text-cyan-400 transition">Partners</a>
+                <a href="#contact" class="hover:text-cyan-400 transition">Contact</a>
+            </div>
+
+        </div>
+
+    </nav>
+
+
+    <!-- Hero -->
+    <section class="hero-bg min-h-screen flex items-center pt-24 px-6 lg:px-12">
+
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
+
+            <!-- Left -->
+            <div>
+
+                <p class="uppercase tracking-[5px] text-cyan-400 font-semibold mb-6">
+                    Global Advertising Technology
+                </p>
+
+                <h1 class="text-5xl lg:text-7xl font-extrabold leading-tight">
+                    Smart
+                    <span class="text-cyan-400">
+                        Programmatic
+                    </span>
+                    Advertising
+                </h1>
+
+                <p class="text-gray-300 text-xl leading-9 mt-8 max-w-2xl">
+                    Advanced RTB, CTV, display and in-app monetization solutions
+                    connecting publishers and advertisers worldwide.
+                </p>
+
+                <div class="flex flex-wrap gap-5 mt-12">
+
+                    <a href="#contact"
+                       class="bg-cyan-500 hover:bg-cyan-400 text-black px-8 py-4 rounded-2xl font-bold transition duration-300 shadow-2xl">
+                        Get Started
+                    </a>
+
+                    <a href="#services"
+                       class="border border-white/20 hover:border-cyan-400 px-8 py-4 rounded-2xl font-semibold hover:text-cyan-400 transition duration-300">
+                        Explore Services
+                    </a>
+
+                </div>
+
+
+                <!-- Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-20">
+
+                    <div>
+                        <h2 class="text-4xl font-bold text-cyan-400">500B+</h2>
+                        <p class="text-gray-400 mt-2">Monthly Requests</p>
+                    </div>
+
+                    <div>
+                        <h2 class="text-4xl font-bold text-cyan-400">120+</h2>
+                        <p class="text-gray-400 mt-2">Demand Partners</p>
+                    </div>
+
+                    <div>
+                        <h2 class="text-4xl font-bold text-cyan-400">50+</h2>
+                        <p class="text-gray-400 mt-2">Countries Reach</p>
+                    </div>
+
+                    <div>
+                        <h2 class="text-4xl font-bold text-cyan-400">99.9%</h2>
+                        <p class="text-gray-400 mt-2">Infrastructure Uptime</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Right Card -->
+            <div>
+
+                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[40px] p-10 shadow-2xl">
+
+                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop"
+                         class="rounded-3xl w-full h-[450px] object-cover">
+
+                    <div class="grid grid-cols-2 gap-6 mt-8">
+
+                        <div class="bg-slate-900 rounded-2xl p-5 border border-white/10">
+                            <h3 class="text-cyan-400 text-3xl font-bold">RTB</h3>
+                            <p class="text-gray-400 mt-2">Real-Time Bidding</p>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-2xl p-5 border border-white/10">
+                            <h3 class="text-cyan-400 text-3xl font-bold">CTV</h3>
+                            <p class="text-gray-400 mt-2">Connected TV</p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- About -->
+    <section id="about" class="py-32 px-6 lg:px-12 bg-slate-950">
+
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
+
+            <div>
+
+                <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop"
+                     class="rounded-[40px] shadow-2xl">
+
+            </div>
+
+
+            <div>
+
+                <p class="uppercase tracking-[5px] text-cyan-400 font-semibold mb-6">
+                    About Us
+                </p>
+
+                <h2 class="text-5xl font-extrabold leading-tight">
+                    Built for the Future of Advertising
+                </h2>
+
+                <p class="text-gray-400 text-lg leading-9 mt-10">
+                    Nexbid empowers publishers, app developers, and advertisers
+                    with enterprise-grade monetization technology.
+                </p>
+
+                <p class="text-gray-400 text-lg leading-9 mt-6">
+                    We provide scalable RTB infrastructure, premium demand access,
+                    advanced optimization algorithms, and real-time reporting tools
+                    across display, video, native, and connected TV environments.
+                </p>
+
+
+                <div class="grid grid-cols-2 gap-6 mt-12">
+
+                    <div class="bg-slate-900 border border-white/10 p-6 rounded-3xl">
+                        <h3 class="text-3xl font-bold text-cyan-400">Global</h3>
+                        <p class="text-gray-400 mt-3">Worldwide demand access</p>
+                    </div>
+
+                    <div class="bg-slate-900 border border-white/10 p-6 rounded-3xl">
+                        <h3 class="text-3xl font-bold text-cyan-400">AI</h3>
+                        <p class="text-gray-400 mt-3">Smart optimization engine</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Services -->
+    <section id="services" class="py-32 px-6 lg:px-12 bg-slate-900">
+
+        <div class="max-w-7xl mx-auto">
+
+            <div class="text-center max-w-3xl mx-auto">
+
+                <p class="uppercase tracking-[5px] text-cyan-400 font-semibold mb-6">
+                    Services
+                </p>
+
+                <h2 class="text-5xl font-extrabold leading-tight">
+                    Advanced Monetization Solutions
+                </h2>
+
+            </div>
+
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10 mt-24">
+
+
+                <!-- Card -->
+                <div class="bg-slate-950 border border-white/10 rounded-[35px] overflow-hidden hover:-translate-y-3 transition duration-300 shadow-2xl">
+
+                    <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop"
+                         class="h-64 w-full object-cover">
+
+                    <div class="p-8">
+
+                        <h3 class="text-3xl font-bold mb-5 text-cyan-400">
+                            CTV Advertising
+                        </h3>
+
+                        <p class="text-gray-400 leading-8">
+                            Premium connected TV monetization and demand solutions for global publishers.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Card -->
+                <div class="bg-slate-950 border border-white/10 rounded-[35px] overflow-hidden hover:-translate-y-3 transition duration-300 shadow-2xl">
+
+                    <img src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?q=80&w=2070&auto=format&fit=crop"
+                         class="h-64 w-full object-cover">
+
+                    <div class="p-8">
+
+                        <h3 class="text-3xl font-bold mb-5 text-cyan-400">
+                            In-App Ads
+                        </h3>
+
+                        <p class="text-gray-400 leading-8">
+                            High-performance monetization solutions for Android and iOS applications.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Card -->
+                <div class="bg-slate-950 border border-white/10 rounded-[35px] overflow-hidden hover:-translate-y-3 transition duration-300 shadow-2xl">
+
+                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop"
+                         class="h-64 w-full object-cover">
+
+                    <div class="p-8">
+
+                        <h3 class="text-3xl font-bold mb-5 text-cyan-400">
+                            Header Bidding
+                        </h3>
+
+                        <p class="text-gray-400 leading-8">
+                            Enterprise-grade RTB infrastructure and auction optimization technology.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Partners -->
+    <section id="partners" class="py-32 px-6 lg:px-12 bg-slate-950">
+
+        <div class="max-w-7xl mx-auto text-center">
+
+            <p class="uppercase tracking-[5px] text-cyan-400 font-semibold mb-6">
+                Trusted Technology
+            </p>
+
+            <h2 class="text-5xl font-extrabold">
+                Built for Global Scale
+            </h2>
+
+
+            <div class="grid md:grid-cols-4 gap-8 mt-24">
+
+                <div class="bg-slate-900 rounded-3xl p-10 border border-white/10">
+                    <h3 class="text-4xl font-bold text-cyan-400">RTB</h3>
+                </div>
+
+                <div class="bg-slate-900 rounded-3xl p-10 border border-white/10">
+                    <h3 class="text-4xl font-bold text-cyan-400">CTV</h3>
+                </div>
+
+                <div class="bg-slate-900 rounded-3xl p-10 border border-white/10">
+                    <h3 class="text-4xl font-bold text-cyan-400">DSP</h3>
+                </div>
+
+                <div class="bg-slate-900 rounded-3xl p-10 border border-white/10">
+                    <h3 class="text-4xl font-bold text-cyan-400">SSP</h3>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- CTA -->
+    <section class="cta-bg py-32 px-6 lg:px-12 text-center text-white">
+
+        <div class="max-w-4xl mx-auto">
+
+            <h2 class="text-5xl lg:text-6xl font-extrabold leading-tight">
+                Scale Your Advertising Business Globally
+            </h2>
+
+            <p class="text-xl leading-9 mt-10">
+                Join publishers and advertisers using our technology
+                to maximize revenue and campaign performance.
+            </p>
+
+            <div class="mt-14">
+
+                <a href="#contact"
+                   class="bg-black hover:bg-slate-900 px-10 py-5 rounded-2xl text-lg font-bold transition duration-300 shadow-2xl">
+                    Contact Us
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Contact -->
+    <section id="contact" class="py-32 px-6 lg:px-12 bg-slate-950">
+
+        <div class="max-w-4xl mx-auto text-center">
+
+            <p class="uppercase tracking-[5px] text-cyan-400 font-semibold mb-6">
+                Contact Us
+            </p>
+
+            <h2 class="text-5xl font-extrabold">
+                Let's Work Together
+            </h2>
+
+            <p class="text-gray-400 text-lg leading-9 mt-8">
+                Reach out to discuss partnerships, monetization,
+                and advertising opportunities.
+            </p>
+
+
+           
+               
+
+            <form action="https://api.web3forms.com/submit" method="POST" class="space-y-6 mt-16 text-left">
+
+                <input type="hidden" name="access_key" value="5d38f16b-7042-442a-85b9-a03407ecef21">
+
+                <input type="text" name="name" placeholder="Your Name" required class="w-full bg-slate-900 border border-white/10 p-5 rounded-2xl outline-none focus:border-cyan-400">
+                <input type="email" name="email" placeholder="Business Email" required class="w-full bg-slate-900 border border-white/10 p-5 rounded-2xl outline-none focus:border-cyan-400">
+                <textarea name="message" rows="6" placeholder="Tell us about your business" required class="w-full bg-slate-900 border border-white/10 p-5 rounded-2xl outline-none focus:border-cyan-400"></textarea>
+                <input type="hidden" name="redirect" value="https://nexbid.uk">
+                
+                <button type="submit" class="bg-cyan-500 hover:bg-cyan-400 text-black px-10 py-5 rounded-2xl font-bold transition duration-300">Send Message</button>
+
+            </form>
+           
+
+        </div>
+
+    </section>
+
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 py-10 px-6 lg:px-12 bg-slate-950">
+
+        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
+
+            <h2 class="text-3xl font-extrabold text-cyan-400">
+                Nexbid
+            </h2>
+
+
+            <div class="flex flex-wrap gap-6 text-gray-400">
+
+                <a href="#" class="hover:text-cyan-400 transition">Home</a>
+                <a href="#about" class="hover:text-cyan-400 transition">About</a>
+                <a href="#services" class="hover:text-cyan-400 transition">Services</a>
+                <a href="#contact" class="hover:text-cyan-400 transition">Contact</a>
+              
+
+            </div>
+
+
+            <div class="text-gray-500 text-sm">
+                © 2026 Nexbid. All rights reserved.
+            </div>
+
+        </div>
+
+    </footer>
+
+
+</body>
+</html>
+```
+
+
