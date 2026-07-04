@@ -268,6 +268,80 @@
       color: #b91c1c;
     }
 
+    .ad-creative-300 {
+      width: 300px;
+      height: 250px;
+      max-width: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      gap: 9px;
+      padding: 20px 18px 18px;
+      box-sizing: border-box;
+      background:
+        radial-gradient(circle at 82% 18%, rgba(255, 176, 77, 0.45), transparent 26%),
+        radial-gradient(circle at 18% 82%, rgba(35, 196, 255, 0.35), transparent 28%),
+        linear-gradient(135deg, #071421 0%, #0b2740 58%, #030813 100%);
+      color: #fff;
+      text-align: left;
+      text-decoration: none;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ad-creative-300::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      pointer-events: none;
+    }
+
+    .ad-creative-label {
+      color: #ffbf63;
+      font: 800 0.68rem/1 Arial, sans-serif;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ad-creative-300 strong {
+      align-self: center;
+      color: #f7fbff;
+      display: block;
+      font: 900 2.35rem/0.96 Arial, sans-serif;
+      letter-spacing: -0.02em;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+    }
+
+    .ad-creative-300 span:not(.ad-creative-label):not(.ad-creative-cta) {
+      color: #d7efff;
+      display: block;
+      font: 700 0.82rem/1.35 Arial, sans-serif;
+      letter-spacing: 0.03em;
+      max-width: 220px;
+      position: relative;
+      text-transform: uppercase;
+      z-index: 1;
+    }
+
+    .ad-creative-cta {
+      background: #ffbf63;
+      color: #071421;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;
+      padding: 0 12px;
+      width: max-content;
+      font: 900 0.78rem/1 Arial, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
     .more-news {
       max-width: var(--max-page);
       margin: 0 auto 26px;
@@ -427,11 +501,8 @@
         </article>
 
         <aside>
-          <div class="ad-unit ad-300" aria-label="300 by 250 Nexbid advertisement">
-            <div class="ad-copy">
-              <strong>Nexbid Ads</strong>
-              <span>300 x 250 responsive unit</span>
-            </div>
+          <div class="ad-unit ad-300" id="nexbid-300x250-ad" aria-label="300 by 250 Nexbid VAST video then banner advertisement">
+            <div class="ad-loading">Loading Nexbid VAST...</div>
           </div>
 
           <div class="side-box">
@@ -485,5 +556,81 @@
       <span>Auto-resizes from mobile banner to desktop leaderboard</span>
     </div>
   </div>
+
+  <script>
+    (function () {
+      const slot = document.getElementById("nexbid-300x250-ad");
+      if (!slot) return;
+
+      const vastUrl = "nexbid-ad-assets/nexbid-vast-tag.xml";
+      const firstBanner = "nexbid-ad-assets/banner-1.png";
+      const secondBanner = "nexbid-ad-assets/banner-2.png";
+      const clickUrl = "https://nexbid.uk";
+
+      function clearSlot() {
+        slot.innerHTML = "";
+        slot.style.overflow = "hidden";
+      }
+
+      function renderBanner(src, label) {
+        clearSlot();
+        const link = document.createElement("a");
+        link.href = clickUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.setAttribute("aria-label", label);
+        link.style.cssText = "display:block;width:100%;height:100%;background:#fff";
+
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = label;
+        img.style.cssText = "display:block;width:100%;height:100%;object-fit:cover;border:0";
+
+        link.appendChild(img);
+        slot.appendChild(link);
+      }
+
+      function renderBannerSequence() {
+        renderBanner(firstBanner, "Nexbid banner 1");
+        window.setTimeout(function () {
+          renderBanner(secondBanner, "Nexbid banner 2");
+        }, 7000);
+      }
+
+      async function renderVastThenBanners() {
+        try {
+          const response = await fetch(vastUrl, { cache: "no-store" });
+          if (!response.ok) throw new Error("VAST request failed");
+          const vastXml = await response.text();
+          const vastDoc = new DOMParser().parseFromString(vastXml, "application/xml");
+          const mediaFile = Array.from(vastDoc.querySelectorAll("MediaFile")).find(function (node) {
+            const type = node.getAttribute("type") || "";
+            return type.includes("webm") || type.includes("mp4");
+          }) || vastDoc.querySelector("MediaFile");
+          const mediaUrl = mediaFile && mediaFile.textContent && mediaFile.textContent.trim();
+          if (!mediaUrl) throw new Error("No playable VAST media file");
+
+          clearSlot();
+          const video = document.createElement("video");
+          video.src = new URL(mediaUrl, new URL(vastUrl, window.location.href)).href;
+          video.controls = true;
+          video.autoplay = true;
+          video.muted = true;
+          video.playsInline = true;
+          video.style.cssText = "display:block;width:100%;height:100%;object-fit:cover;background:#000";
+          video.addEventListener("ended", renderBannerSequence);
+          video.addEventListener("error", renderBannerSequence);
+          slot.appendChild(video);
+          await video.play().catch(function () {});
+        } catch (error) {
+          renderBannerSequence();
+        }
+      }
+
+      renderVastThenBanners();
+    })();
+  </script>
 </body>
 </html>
+
+
