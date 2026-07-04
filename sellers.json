@@ -1,6 +1,123 @@
-﻿{
-  "seller_id": "12345",
-  "name": "Nexbid",
-  "domain": "nexbid.uk",
-  "seller_type": "INTERMEDIARY"
+{
+  "contact_email": "sales@nexbid.uk",
+  "contact_address": "Wolverhampton",
+  "version": "1.0",
+  "ext": {
+    "last_updated": "2026-07-04"
+  },
+  "identifiers": [],
+  "sellers": [
+    {
+      "seller_id": "2606004",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "jagran.com",
+      "name": "Jagran"
+    },
+    {
+      "seller_id": "2606005",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "jagranjosh.com",
+      "name": "Jagran"
+    },
+    {
+      "seller_id": "2606006",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "naidunia.com",
+      "name": "Jagran"
+    },
+    {
+      "seller_id": "2606007",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "herzindagi.com",
+      "name": "Jagran"
+    },
+    {
+      "seller_id": "2606008",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "thedailyjagran.com",
+      "name": "Jagran"
+    },
+    {
+      "seller_id": "2606009",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "onlymyhealth.com",
+      "name": "Jagran"
+    },
+    {
+      "seller_id": "2606010",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "punjabijagran.com",
+      "name": "Jagran"
+    },
+    {
+      "seller_id": "2606011",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "gujaratijagran.com",
+      "name": "Jagran"
+    },
+    {
+      "seller_id": "2606012",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "",
+      "name": ""
+    },
+    {
+      "seller_id": "2606013",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "jakartaglobe.id",
+      "name": "jakartaglobe"
+    },
+    {
+      "seller_id": "2606014",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "investor.id",
+      "name": "Investor.id"
+    },
+    {
+      "seller_id": "2606015",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "beritasatu.com",
+      "name": "Beritasatu.com"
+    },
+    {
+      "seller_id": "2606016",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "roliascan.com",
+      "name": "roliascan.com"
+    },
+    {
+      "seller_id": "26060002",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "tv9telegu.com",
+      "name": "tv9telegu.com"
+    },
+    {
+      "seller_id": "26060003",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "uneeku.com",
+      "name": "Uneeku"
+    },
+    {
+      "seller_id": "26060001",
+      "seller_type": "PUBLISHER",
+      "is_confidential": 0,
+      "domain": "moneycontrol.com",
+      "name": "moneycontrol"
+    }
+  ]
 }
