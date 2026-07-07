@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NexBid Invoice Generator</title>
+    <meta name="description" content="Static NexBid invoice generator for Excel uploads and print-ready PDF invoices.">
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./index.html" aria-label="NexBid home">
+        <span class="brand-mark">N</span>
+        <span>NexBid</span>
+      </a>
+      <nav class="nav" aria-label="Invoice tools">
+        <a href="#upload">Upload</a>
+        <a href="#preview">Preview</a>
+        <a href="#settings">Settings</a>
+      </nav>
+      <button class="icon-button" id="themeToggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <span aria-hidden="true">◐</span>
+      </button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">NexBid UK Billing</p>
+          <h1>Invoice generator</h1>
+          <p class="lede">Upload the monthly Excel workbook, validate partner rows, preview invoices, and export professional PDFs directly from the browser.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="primary" id="generateAllTop" type="button">Generate All PDFs</button>
+          <button class="secondary" id="downloadZipTop" type="button">Download ZIP</button>
+        </div>
+      </section>
+
+      <section class="dashboard" aria-label="Invoice dashboard">
+        <article class="metric">
+          <span>Invoices</span>
+          <strong id="invoiceCount">0</strong>
+        </article>
+        <article class="metric">
+          <span>Total Amount</span>
+          <strong id="totalAmount">£0.00</strong>
+        </article>
+        <article class="metric">
+          <span>Billing Month</span>
+          <strong id="billingMonth">-</strong>
+        </article>
+        <article class="metric">
+          <span>Partners</span>
+          <strong id="partnerCount">0</strong>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel" id="upload">
+          <div class="section-title">
+            <p>Workbook</p>
+            <h2>Upload Excel</h2>
+          </div>
+          <label class="dropzone" id="dropzone">
+            <input id="fileInput" type="file" accept=".xlsx,.xls,.csv">
+            <span>Drop Excel file here or click to browse</span>
+            <small>Sheet1: InvoiceData. Sheet2: Partners.</small>
+          </label>
+          <div class="progress-track" aria-label="Generation progress">
+            <span id="progressBar"></span>
+          </div>
+          <div class="tool-row">
+            <button class="primary" id="generateAll" type="button">Generate All</button>
+            <button class="secondary" id="downloadZip" type="button">ZIP</button>
+          </div>
+          <div class="tool-row">
+            <button class="secondary" id="resetCounter" type="button">Reset Counter</button>
+            <button class="secondary" id="loadSample" type="button">Load Sample</button>
+          </div>
+          <div class="notice" id="statusMessage">No workbook loaded yet.</div>
+        </aside>
+
+        <section class="panel wide" id="preview">
+          <div class="section-head">
+            <div class="section-title">
+              <p>Preview</p>
+              <h2>Invoices</h2>
+            </div>
+            <label class="search">
+              <span>Search</span>
+              <input id="searchInput" placeholder="Partner, bill type, email">
+            </label>
+          </div>
+          <div class="warning-list" id="warningList" hidden></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Bill Type</th>
+                  <th>Payment</th>
+                  <th>Amount</th>
+                  <th>Invoice No</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="invoiceRows">
+                <tr>
+                  <td colspan="7" class="empty">Upload a workbook to preview invoices.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel settings" id="settings">
+        <div class="section-title">
+          <p>Configuration</p>
+          <h2>Company, Bank, PDF Style</h2>
+        </div>
+        <form id="settingsForm" class="settings-grid">
+          <label>Company Name<input name="companyName"></label>
+          <label>Company Address<textarea name="companyAddress" rows="3"></textarea></label>
+          <label>Company Email<input name="companyEmail" type="email"></label>
+          <label>Company Website<input name="companyWebsite"></label>
+          <label>Bank Details<textarea name="bankDetails" rows="3"></textarea></label>
+          <label>Currency<select name="currency"><option value="GBP">GBP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="INR">INR</option></select></label>
+          <label>Invoice Prefix<input name="invoicePrefix"></label>
+          <label>Primary Color<input name="primaryColor" type="color"></label>
+          <label>Accent Color<input name="accentColor" type="color"></label>
+          <label>Logo Text<input name="logoText"></label>
+        </form>
+        <div class="tool-row">
+          <button class="primary" id="saveSettings" type="button">Save Settings</button>
+          <button class="secondary" id="restoreSettings" type="button">Restore Defaults</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="./config.js"></script>
+    <script src="./utils.js"></script>
+    <script src="./excel.js"></script>
+    <script src="./invoice.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
