@@ -1,0 +1,271 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NexBanner Dashboard</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">N</span>
+        <div>
+          <strong>NexBanner</strong>
+          <span>Demand and Tag Dashboard</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <a class="secondary-link" href="./invoice-generator/">Invoice Generator</a>
+        <button id="exportConfig" class="secondary">Export Config</button>
+        <button id="logoutDashboard" class="secondary">Logout</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel setup-panel">
+        <div class="section-title">
+          <p>Setup</p>
+          <h1>Create Publisher Tag</h1>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Publisher ID
+            <input id="publisherId" value="demo-publisher" autocomplete="off">
+          </label>
+          <label>
+            Placement ID
+            <input id="placementId" value="home-300x250" autocomplete="off">
+          </label>
+          <label>
+            Width
+            <input id="width" value="300" inputmode="numeric">
+          </label>
+          <label>
+            Height
+            <input id="height" value="250" inputmode="numeric">
+          </label>
+          <label>
+            CDN Script URL
+            <input id="cdnScript" value="https://nexbid.b-cdn.net/nexbanner/final/src/nexbanner-gam.js">
+          </label>
+          <label>
+            API Base URL
+            <input id="apiBase" value="https://nexbid.uk">
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <p>Demand</p>
+          <h2>Add Demand Endpoint</h2>
+        </div>
+
+        <form id="demandForm" class="demand-form">
+          <label>
+            Demand Name
+            <input id="demandName" placeholder="Example: Premium VAST Partner" required>
+          </label>
+          <label>
+            Type
+            <select id="demandType">
+              <option value="vast">VAST Video</option>
+              <option value="display">Display JSON</option>
+              <option value="ortb">ORTB Fallback</option>
+            </select>
+          </label>
+          <label>
+            Endpoint / VAST Tag URL
+            <input id="demandEndpoint" placeholder="https://partner.com/vast?pub=123" required>
+          </label>
+          <label>
+            Floor CPM
+            <input id="floorCpm" value="0.10" inputmode="decimal">
+          </label>
+          <label>
+            Timeout MS
+            <input id="timeoutMs" value="800" inputmode="numeric">
+          </label>
+          <button type="submit">Add Endpoint</button>
+        </form>
+        <div class="notice" id="demandNotice" aria-live="polite"></div>
+
+        <div class="demand-list" id="demandList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <p>Display JS</p>
+          <h2>Add Display Tag Script</h2>
+        </div>
+
+        <form id="displayTagForm" class="demand-form">
+          <label>
+            Tag Name
+            <input id="displayTagName" placeholder="Example: Display Partner JS" required>
+          </label>
+          <label>
+            JS Tag URL
+            <input id="displayTagUrl" placeholder="https://partner.com/display-300x250.js" required>
+          </label>
+          <label>
+            Floor CPM
+            <input id="displayTagFloor" value="0.10" inputmode="decimal">
+          </label>
+          <label>
+            Timeout MS
+            <input id="displayTagTimeout" value="800" inputmode="numeric">
+          </label>
+          <button type="submit">Add Display JS Tag</button>
+        </form>
+        <div class="notice" id="displayTagNotice" aria-live="polite"></div>
+
+        <div class="demand-list" id="displayTagList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <p>Prebid</p>
+          <h2>Add Prebid Parameters</h2>
+        </div>
+
+        <form id="prebidForm" class="demand-form">
+          <label>
+            Prebid Name
+            <input id="prebidName" placeholder="Example: Premium Prebid Demand" required>
+          </label>
+          <label>
+            Prebid Endpoint
+            <input id="prebidEndpoint" placeholder="https://api.nexbanner.com/api/v1/auction">
+          </label>
+          <label class="wide-field">
+            Prebid Params JSON
+            <textarea id="prebidParams" placeholder='{"bidder":"partner","params":{"placementId":"123"}}' spellcheck="false"></textarea>
+          </label>
+          <label>
+            Floor CPM
+            <input id="prebidFloor" value="0.20" inputmode="decimal">
+          </label>
+          <label>
+            Timeout MS
+            <input id="prebidTimeout" value="900" inputmode="numeric">
+          </label>
+          <button type="submit">Add Prebid Params</button>
+        </form>
+        <div class="notice" id="prebidNotice" aria-live="polite"></div>
+
+        <div class="demand-list" id="prebidList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <p>Ad Manager / MI</p>
+          <h2>Add Ad Server Tags</h2>
+        </div>
+
+        <form id="adserverForm" class="demand-form">
+          <label>
+            Account / Tag Name
+            <input id="adserverName" placeholder="Example: MI Account 1" required>
+          </label>
+          <label>
+            Tag Type
+            <select id="adserverTagType">
+              <option value="html">Full HTML / GAM Tag</option>
+              <option value="script">JS Script URL</option>
+            </select>
+          </label>
+          <label class="wide-field">
+            Full HTML / JavaScript Tag
+            <textarea id="adserverHtml" placeholder="<script async src=&quot;https://securepubads.g.doubleclick.net/tag/js/gpt.js&quot;></script>..." spellcheck="false"></textarea>
+          </label>
+          <label>
+            JS Script URL
+            <input id="adserverUrl" placeholder="https://adserver.com/tag.js">
+          </label>
+          <label>
+            Floor CPM
+            <input id="adserverFloor" value="0.10" inputmode="decimal">
+          </label>
+          <label>
+            Timeout MS
+            <input id="adserverTimeout" value="900" inputmode="numeric">
+          </label>
+          <button type="submit">Add Ad Server Tag</button>
+        </form>
+        <div class="notice" id="adserverNotice" aria-live="polite"></div>
+
+        <div class="demand-list" id="adserverList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <p>Final Fallback</p>
+          <h2>ORTB Ad Exchange Endpoints</h2>
+        </div>
+
+        <form id="ortbForm" class="demand-form">
+          <label>
+            Exchange Name
+            <input id="ortbName" placeholder="Example: NexBid ORTB AdX" required>
+          </label>
+          <label>
+            ORTB Endpoint
+            <input id="ortbEndpoint" placeholder="https://adx.example.com/openrtb2/auction" required>
+          </label>
+          <label>
+            Floor CPM
+            <input id="ortbFloor" value="0.05" inputmode="decimal">
+          </label>
+          <label>
+            Timeout MS
+            <input id="ortbTimeout" value="700" inputmode="numeric">
+          </label>
+          <button type="submit">Add ORTB Endpoint</button>
+        </form>
+        <div class="notice" id="ortbNotice" aria-live="polite"></div>
+
+        <div class="demand-list" id="ortbList"></div>
+      </section>
+
+      <section class="panel output-panel">
+        <div class="section-title">
+          <p>Publisher Output</p>
+          <h2>Generated GAM Creative Tag</h2>
+        </div>
+
+        <div class="actions">
+          <button id="generateTag">Generate Tag</button>
+          <button id="saveConfig" class="secondary">Save Final Config</button>
+          <button id="generateShortTag" class="secondary">Generate Short Tag</button>
+          <button id="copyTag" class="secondary">Copy Tag</button>
+        </div>
+
+        <textarea id="tagOutput" spellcheck="false"></textarea>
+      </section>
+
+      <section class="panel preview-panel">
+        <div class="section-title">
+          <p>Preview</p>
+          <h2>300x250 Slot</h2>
+        </div>
+        <div class="slot-preview">
+          <span class="logo">N</span>
+          <div>
+            <strong>Video First</strong>
+            <small>VAST -> Display -> ORTB</small>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./dashboard-auth.js?v=login-1"></script>
+    <script src="./app.js?v=ortb-1"></script>
+  </body>
+</html>
+
+
+
+
