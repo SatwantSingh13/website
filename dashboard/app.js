@@ -12,6 +12,7 @@
 
   var els = {
     publisherId: document.getElementById("publisherId"),
+    publisherDomain: document.getElementById("publisherDomain"),
     placementId: document.getElementById("placementId"),
     width: document.getElementById("width"),
     height: document.getElementById("height"),
@@ -61,8 +62,28 @@
     saveConfig: document.getElementById("saveConfig"),
     generateShortTag: document.getElementById("generateShortTag"),
     copyTag: document.getElementById("copyTag"),
+    saveConfigV2: document.getElementById("saveConfigV2"),
+    generateShortTagV2: document.getElementById("generateShortTagV2"),
+    copyTagV2: document.getElementById("copyTagV2"),
+    tagOutputV2: document.getElementById("tagOutputV2"),
+    reportScope: document.getElementById("reportScope"),
+    reportConfigId: document.getElementById("reportConfigId"),
+    refreshReport: document.getElementById("refreshReport"),
+    autoRefreshReport: document.getElementById("autoRefreshReport"),
+    metricAdRequests: document.getElementById("metricAdRequests"),
+    metricViewable: document.getElementById("metricViewable"),
+    metricDelivered: document.getElementById("metricDelivered"),
+    metricFillRate: document.getElementById("metricFillRate"),
+    metricNoFill: document.getElementById("metricNoFill"),
+    metricImpressions: document.getElementById("metricImpressions"),
+    metricErrors: document.getElementById("metricErrors"),
+    metricCycles: document.getElementById("metricCycles"),
+    metricRevenue: document.getElementById("metricRevenue"),
+    reportStatus: document.getElementById("reportStatus"),
+    reportOutput: document.getElementById("reportOutput"),
     exportConfig: document.getElementById("exportConfig")
   };
+  var reportTimer = null;
 
   hydrate();
   renderDemand();
@@ -71,6 +92,7 @@
   renderAdserverTags();
   renderOrtb();
   generateTag();
+  startReportAutoRefresh();
 
   els.demandForm.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -174,6 +196,7 @@
 
   [
     els.publisherId,
+    els.publisherDomain,
     els.placementId,
     els.width,
     els.height,
@@ -189,6 +212,10 @@
   els.generateTag.addEventListener("click", generateTag);
   els.saveConfig.addEventListener("click", saveFinalConfig);
   els.generateShortTag.addEventListener("click", generateShortTag);
+  els.saveConfigV2.addEventListener("click", saveVersion2Config);
+  els.generateShortTagV2.addEventListener("click", generateShortTagV2);
+  els.refreshReport.addEventListener("click", refreshReport);
+  els.autoRefreshReport.addEventListener("click", toggleAutoRefreshReport);
 
   els.copyTag.addEventListener("click", function () {
     els.tagOutput.select();
@@ -196,6 +223,15 @@
     els.copyTag.textContent = "Copied";
     setTimeout(function () {
       els.copyTag.textContent = "Copy Tag";
+    }, 1200);
+  });
+
+  els.copyTagV2.addEventListener("click", function () {
+    els.tagOutputV2.select();
+    document.execCommand("copy");
+    els.copyTagV2.textContent = "Copied";
+    setTimeout(function () {
+      els.copyTagV2.textContent = "Copy Version 2 Tag";
     }, 1200);
   });
 
@@ -351,7 +387,9 @@
     }
 
     state.adserverTags.forEach(function (item) {
-      var node = demandNode(item, "Ad Server JS", item.endpoint);
+      var label = item.tagType === "html" ? "Ad Server HTML / GAM" : "Ad Server JS";
+      var preview = item.tagType === "html" ? item.html : item.endpoint;
+      var node = demandNode(item, label, preview);
       node.querySelector(".remove").addEventListener("click", function () {
         state.adserverTags = state.adserverTags.filter(function (existing) {
           return existing.id !== item.id;
@@ -372,7 +410,14 @@
     var adserverTags = endpointsFrom(state.adserverTags);
     var adserverHtmlTags = htmlTagsFrom(state.adserverTags);
     var prebid = state.prebid[0] || null;
-    var ortb = firstEndpoint("ortb");
+    var prebidDemand = state.prebid.map(function (item) {
+      return {
+        name: item.name || "",
+        endpoint: item.endpoint || "",
+        params: item.params || ""
+      };
+    });
+    var ortbEndpoints = endpointsFor("ortb");
     var apiBase = trimSlash(config.setup.apiBase);
 
     var lines = [
@@ -381,6 +426,7 @@
       '  src="' + config.setup.cdnScript + '"',
       '  data-target="nexbanner-slot-%%CACHEBUSTER%%"',
       '  data-publisher-id="' + config.setup.publisherId + '"',
+      '  data-publisher-domain="' + config.setup.publisherDomain + '"',
       '  data-placement-id="' + config.setup.placementId + '"',
       '  data-width="' + config.setup.width + '"',
       '  data-height="' + config.setup.height + '"',
@@ -390,11 +436,12 @@
       '  data-track-url="' + apiBase + "/api/v1/track" + '"',
       prebid && prebid.endpoint ? '  data-prebid-endpoint="' + prebid.endpoint + '"' : "",
       prebid && prebid.params ? '  data-prebid-params="' + encodeAttribute(prebid.params) + '"' : "",
+      prebidDemand.length ? '  data-prebid-demand="' + encodeAttribute(encodeURIComponent(JSON.stringify(prebidDemand))) + '"' : "",
       displayJsTags.length ? '  data-display-script-urls="' + displayJsTags.join("|") + '"' : "",
       adserverTags.length ? '  data-adserver-script-urls="' + adserverTags.join("|") + '"' : "",
       adserverHtmlTags.length ? '  data-adserver-html-tags="' + adserverHtmlTags.join("|") + '"' : "",
       display ? '  data-display-endpoint="' + display.endpoint + '"' : "",
-      ortb ? '  data-ortb-endpoint="' + ortb.endpoint + '"' : "",
+      ortbEndpoints.length ? '  data-ortb-endpoints="' + ortbEndpoints.join("|") + '"' : "",
       '  data-logo-text="N"',
       '  data-click-url="https://nexbid.uk">',
       "</script>"
@@ -405,8 +452,20 @@
 
   function generateShortTag() {
     var config = buildConfig();
-    var configId = state.configId || "SAVE-CONFIG-FIRST";
+    var configId = config.configId || "SAVE-CONFIG-FIRST";
     els.tagOutput.value = [
+      '<script',
+      '  src="' + config.setup.cdnScript + '"',
+      '  data-config-id="' + configId + '"',
+      '  data-api-base="' + trimSlash(config.setup.apiBase) + '">',
+      "</script>"
+    ].join("\n");
+  }
+
+  function generateShortTagV2() {
+    var config = buildVersion2Config();
+    var configId = config.configId || "SAVE-VERSION-2-FIRST";
+    els.tagOutputV2.value = [
       '<script',
       '  src="' + config.setup.cdnScript + '"',
       '  data-config-id="' + configId + '"',
@@ -442,10 +501,38 @@
       });
   }
 
+  function saveVersion2Config() {
+    var config = buildVersion2Config();
+    var endpoint = trimSlash(config.setup.apiBase) + "/api/v1/config";
+
+    els.saveConfigV2.textContent = "Saving...";
+    fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(config)
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error("save_failed");
+        return response.json();
+      })
+      .then(function (result) {
+        state.configIdV2 = result.configId;
+        showNotice(els.demandNotice, "Version 2 Testing config " + result.configId + " has been saved.");
+        els.tagOutputV2.value = result.tag || "";
+      })
+      .catch(function () {
+        showNotice(els.demandNotice, "Version 2 config save failed. Check API/database connection.");
+      })
+      .finally(function () {
+        els.saveConfigV2.textContent = "Save Version 2 Testing Config";
+      });
+  }
+
   function buildConfig() {
     return {
       setup: {
         publisherId: els.publisherId.value.trim(),
+        publisherDomain: els.publisherDomain.value.trim(),
         placementId: els.placementId.value.trim(),
         width: els.width.value.trim(),
         height: els.height.value.trim(),
@@ -456,8 +543,91 @@
       displayTags: state.displayTags,
       prebid: state.prebid,
       adserverTags: state.adserverTags,
-      configId: state.configId || ""
+      configId: domainConfigId(els.publisherDomain.value.trim(), "Version 1")
     };
+  }
+
+  function buildVersion2Config() {
+    var config = buildConfig();
+    config.productVersion = "Version 2 Testing";
+    config.rotationMode = "realtime-viewable-bidding";
+    config.setup.cdnScript = "https://nexbid.uk/nexbanner/version-2-testing/src/nexbanner-gam.js";
+    config.rotationMs = 10000;
+    config.configId = domainConfigId(config.setup.publisherDomain, "Version 2 Testing");
+    return config;
+  }
+
+  function refreshReport() {
+    var config = buildConfig();
+    var url = new URL(trimSlash(config.setup.apiBase) + "/api/v1/report");
+    var scope = els.reportScope.value;
+    var reportConfigId = els.reportConfigId.value.trim();
+
+    if (scope === "publisher") {
+      url.searchParams.set("publisher_id", config.setup.publisherId);
+    } else if (scope === "domain") {
+      url.searchParams.set("publisher_domain", config.setup.publisherDomain);
+    } else if (scope === "placement") {
+      url.searchParams.set("publisher_id", config.setup.publisherId);
+      url.searchParams.set("placement_id", config.setup.placementId);
+    } else if (scope === "config" && reportConfigId) {
+      url.searchParams.set("config_id", reportConfigId);
+    }
+
+    els.refreshReport.textContent = "Refreshing...";
+    fetch(url.toString())
+      .then(function (response) {
+        if (!response.ok) throw new Error("report_failed");
+        return response.json();
+      })
+      .then(function (result) {
+        renderReport(result.summary || {});
+        els.reportOutput.value = JSON.stringify(result, null, 2);
+        els.reportStatus.textContent = "Updated " + new Date().toLocaleTimeString();
+      })
+      .catch(function () {
+        els.reportOutput.value = "Report unavailable. Check NEXBANNER_EVENTS KV binding.";
+        els.reportStatus.textContent = "Report unavailable";
+      })
+      .finally(function () {
+        els.refreshReport.textContent = "Refresh Report";
+      });
+  }
+
+  function renderReport(summary) {
+    var adRequests = numberOr(summary.adRequests, 0);
+    var viewable = numberOr(summary.viewableRequests, 0);
+    var delivered = numberOr(summary.deliveredAds, 0);
+    var fillRate = viewable ? Math.round((delivered / viewable) * 1000) / 10 : 0;
+
+    els.metricAdRequests.textContent = formatNumber(adRequests);
+    els.metricViewable.textContent = formatNumber(viewable);
+    els.metricDelivered.textContent = formatNumber(delivered);
+    els.metricFillRate.textContent = fillRate + "%";
+    els.metricNoFill.textContent = formatNumber(numberOr(summary.noFill, 0));
+    els.metricImpressions.textContent = formatNumber(numberOr(summary.impressions, 0));
+    els.metricErrors.textContent = formatNumber(numberOr(summary.errors, 0));
+    els.metricCycles.textContent = formatNumber(numberOr(summary.cycles, 0));
+    els.metricRevenue.textContent = "$" + numberOr(summary.revenueEstimate, 0).toFixed(4);
+  }
+
+  function startReportAutoRefresh() {
+    refreshReport();
+    reportTimer = setInterval(refreshReport, 5000);
+    els.autoRefreshReport.textContent = "Auto Refresh On";
+  }
+
+  function toggleAutoRefreshReport() {
+    if (reportTimer) {
+      clearInterval(reportTimer);
+      reportTimer = null;
+      els.autoRefreshReport.textContent = "Auto Refresh Off";
+      return;
+    }
+
+    refreshReport();
+    reportTimer = setInterval(refreshReport, 5000);
+    els.autoRefreshReport.textContent = "Auto Refresh On";
   }
 
   function saveFromForm() {
@@ -512,6 +682,28 @@
     return (value || "").replace(/\/+$/, "");
   }
 
+  function domainConfigId(domain, version) {
+    var cleanDomain = String(domain || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/.*$/, "");
+
+    if (!cleanDomain) return "";
+    if (version === "Version 2 Testing") return cleanDomain + "-version-2-testing";
+    return cleanDomain;
+  }
+
+  function numberOr(value, fallback) {
+    var parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function formatNumber(value) {
+    return String(Math.round(numberOr(value, 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
   function escapeHtml(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
@@ -553,3 +745,4 @@
     node.classList.add("show");
   }
 })();
+

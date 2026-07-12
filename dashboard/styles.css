@@ -241,8 +241,55 @@ button.secondary,
 
 .actions {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.report-status {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.version-panel {
+  border-color: #9cc4ff;
+  background: #f7fbff;
+}
+
+.version-copy {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.report-grid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7fbff;
+  padding: 14px;
+}
+
+.report-grid strong {
+  display: block;
+  color: var(--blue);
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.report-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .slot-preview {
@@ -285,3 +332,4 @@ button.secondary,
     grid-column: span 1;
   }
 }
+

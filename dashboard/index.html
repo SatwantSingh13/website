@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>NexBanner Dashboard</title>
+    <title>NexBanner Version 1 Dashboard</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
@@ -11,12 +11,12 @@
       <div class="brand">
         <span class="brand-mark">N</span>
         <div>
-          <strong>NexBanner</strong>
+          <strong>NexBanner Version 1</strong>
           <span>Demand and Tag Dashboard</span>
         </div>
       </div>
       <div class="topbar-actions">
-        <a class="secondary-link" href="./invoice-generator/">Invoice Generator</a>
+        <a class="secondary-link" href="../invoice-generator/">Invoice Generator</a>
         <button id="exportConfig" class="secondary">Export Config</button>
         <button id="logoutDashboard" class="secondary">Logout</button>
       </div>
@@ -26,13 +26,17 @@
       <section class="panel setup-panel">
         <div class="section-title">
           <p>Setup</p>
-          <h1>Create Publisher Tag</h1>
+          <h1>Create Publisher Tag - Version 1</h1>
         </div>
 
         <div class="form-grid">
           <label>
             Publisher ID
             <input id="publisherId" value="demo-publisher" autocomplete="off">
+          </label>
+          <label>
+            Publisher Domain
+            <input id="publisherDomain" value="moneycontrol.com" autocomplete="off">
           </label>
           <label>
             Placement ID
@@ -48,7 +52,7 @@
           </label>
           <label>
             CDN Script URL
-            <input id="cdnScript" value="https://nexbid.b-cdn.net/nexbanner/final/src/nexbanner-gam.js">
+            <input id="cdnScript" value="https://nexbid.uk/nbx/v1.js">
           </label>
           <label>
             API Base URL
@@ -246,6 +250,69 @@
         <textarea id="tagOutput" spellcheck="false"></textarea>
       </section>
 
+      <section class="panel output-panel version-panel">
+        <div class="section-title">
+          <p>Version 2 Testing</p>
+          <h2>Real Time Bidding Viewability Loop</h2>
+        </div>
+
+        <p class="version-copy">
+          Version 2 starts bidding only when the placement is viewable. VAST, Prebid, JS tags, MI/GAM, and ORTB exchange demand compete in their layers. The highest valid bid or highest priority source renders first. If VAST is delivered, bidding continues after the video ends. If display is delivered, the layer refreshes after 10 seconds while the user remains in the viewable area.
+        </p>
+
+        <div class="actions">
+          <button id="saveConfigV2" class="secondary">Save Version 2 Testing Config</button>
+          <button id="generateShortTagV2" class="secondary">Generate Version 2 Testing Tag</button>
+          <button id="copyTagV2" class="secondary">Copy Version 2 Tag</button>
+        </div>
+
+        <textarea id="tagOutputV2" spellcheck="false" placeholder="Version 2 Testing publisher tag will appear here."></textarea>
+      </section>
+
+      <section class="panel output-panel">
+        <div class="section-title">
+          <p>Version 1 Live Reporting</p>
+          <h2>Moneycontrol Delivery</h2>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Report Scope
+            <select id="reportScope">
+              <option value="all">All Traffic Today</option>
+              <option value="publisher">Current Publisher ID</option>
+              <option value="domain">Current Publisher Domain</option>
+              <option value="placement">Current Publisher + Placement</option>
+              <option value="config" selected>Config ID</option>
+            </select>
+          </label>
+          <label>
+            Config ID
+            <input id="reportConfigId" value="moneycontrol.com" placeholder="Config ID">
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="refreshReport" class="secondary">Refresh Report</button>
+          <button id="autoRefreshReport" class="secondary">Auto Refresh On</button>
+          <span id="reportStatus" class="report-status" aria-live="polite">Connecting...</span>
+        </div>
+
+        <div class="report-grid">
+          <div><strong id="metricAdRequests">0</strong><span>Ad Requests</span></div>
+          <div><strong id="metricViewable">0</strong><span>Viewable Requests</span></div>
+          <div><strong id="metricDelivered">0</strong><span>Delivered Ads</span></div>
+          <div><strong id="metricFillRate">0%</strong><span>Fill Rate</span></div>
+          <div><strong id="metricNoFill">0</strong><span>No Fill</span></div>
+          <div><strong id="metricImpressions">0</strong><span>Impressions</span></div>
+          <div><strong id="metricErrors">0</strong><span>Errors</span></div>
+          <div><strong id="metricCycles">0</strong><span>Completed Cycles</span></div>
+          <div><strong id="metricRevenue">$0.0000</strong><span>Est. Revenue</span></div>
+        </div>
+
+        <textarea id="reportOutput" spellcheck="false" readonly></textarea>
+      </section>
+
       <section class="panel preview-panel">
         <div class="section-title">
           <p>Preview</p>
@@ -262,9 +329,10 @@
     </main>
 
     <script src="./dashboard-auth.js?v=login-1"></script>
-    <script src="./app.js?v=ortb-1"></script>
+    <script src="./app.js?v=reporting-v1-2"></script>
   </body>
 </html>
+
 
 
 
