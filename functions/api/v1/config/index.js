@@ -164,7 +164,7 @@ function shortTag(configId, config) {
 function scriptForProduct(productVersion) {
   if (productVersion === "Version 2 Testing") return "https://nexbid.uk/nexbanner/version-2-testing/src/nexbanner-gam.js";
   if (productVersion === "NexSticky") return "https://nexbid.uk/nexsticky/final/src/nexsticky-gam.js";
-  return "https://nexbid.uk/nexbanner/final/src/nexbanner-gam.js";
+  return "https://nexbid.uk/nbx/v1.js?v=20260713-4";
 }
 
 function escapeAttr(value) {
