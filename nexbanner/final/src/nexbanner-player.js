@@ -151,12 +151,16 @@
     ]).then(function (decision) {
       if (!state.active || state.cycleId !== cycleId) return;
 
-      if (decision.type === "vast" && decision.outcome.ad) {
-        renderPreparedVideo(root, config, state, decision.outcome.ad, displayOutcome, cycleId);
-        return;
+      function useVast(outcome) {
+        if (!state.active || state.cycleId !== cycleId) return;
+        if (outcome && outcome.ad) {
+          renderPreparedVideo(root, config, state, outcome.ad, displayOutcome, cycleId);
+        } else {
+          displayOutcome.then(useDisplay);
+        }
       }
 
-      displayOutcome.then(function (prepared) {
+      function useDisplay(prepared) {
         if (!state.active || state.cycleId !== cycleId) return;
         if (prepared && prepared.ad) {
           renderPreparedDisplay(root, config, state, prepared, vastOutcome, cycleId);
@@ -171,6 +175,19 @@
             runRotationStep(root, config, state, 4);
           }
         });
+      }
+
+      if (decision.type === "vast") {
+        useVast(decision.outcome);
+        return;
+      }
+
+      Promise.race([
+        vastOutcome.then(function (outcome) { return { type: "vast", value: outcome }; }),
+        displayOutcome.then(function (prepared) { return { type: "display", value: prepared }; })
+      ]).then(function (ready) {
+        if (ready.type === "vast") useVast(ready.value);
+        else useDisplay(ready.value);
       });
     });
   }
