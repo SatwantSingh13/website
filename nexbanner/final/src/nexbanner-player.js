@@ -4,14 +4,15 @@
   window.NexBannerPlayer = { mount: mount };
 
   function mount(target, config) {
+    track(config, "ad_request", { layer: "gam-entry" });
     loadConfig(config)
       .then(function (resolvedConfig) {
+        preconnectDemand(resolvedConfig);
         var root = buildShell(target, resolvedConfig);
-        track(resolvedConfig, "ad_request", { layer: "gam-entry" });
-        track(resolvedConfig, "load", { layer: "gam-entry" });
         startViewableRotation(root, resolvedConfig);
       })
       .catch(function () {
+        preconnectDemand(config);
         var root = buildShell(target, config);
         track(config, "config_error", { layer: "config" });
         startViewableRotation(root, config);
@@ -23,12 +24,13 @@
 
     var endpoint = config.configEndpoint ||
       trimSlash(config.apiBase || "https://nexbid.uk") + "/api/v1/config/" + encodeURIComponent(config.configId);
-
-    return withTimeout(fetch(endpoint, { credentials: "omit" }), config.timeoutMs || 1800)
+    var remoteConfig = config.__configPromise || fetch(endpoint, { credentials: "omit" })
       .then(function (response) {
         if (!response.ok) throw new Error("config-http-" + response.status);
         return response.json();
-      })
+      });
+
+    return withTimeout(remoteConfig, config.configTimeoutMs || 3000)
       .then(function (remoteConfig) {
         return mergeConfig(config, remoteConfig || {});
       });
@@ -56,10 +58,12 @@
 
   function startViewableRotation(root, config) {
     var state = {
-      active: false,
+      active: true,
       visible: false,
       timer: null,
       currentLayer: "",
+      running: true,
+      pendingRestart: false,
       durationMs: numberValue(config.rotationMs, 10000),
       minRenderMs: Math.max(5000, numberValue(config.minRenderMs, 5000)),
       hasRenderedAd: false,
@@ -76,40 +80,182 @@
       });
     };
 
-    function start() {
-      if (state.active) return;
-      state.active = true;
+    function markVisible() {
+      if (state.visible) return;
       state.visible = true;
-      state.nextIndex = 0;
       track(config, "viewable_start", { layer: "viewability" });
-      runRotationStep(root, config, state, 0);
+      if (state.pendingRestart && !state.running) {
+        state.pendingRestart = false;
+        state.nextIndex = 0;
+        startHybridCycle(root, config, state);
+      }
     }
 
-    function pause() {
-      if (!state.active) return;
-      state.active = false;
+    function markHidden() {
+      if (!state.visible) return;
       state.visible = false;
-      clearTimer(state);
+      if (!state.running) {
+        clearTimer(state);
+        state.pendingRestart = true;
+      }
       track(config, "viewable_pause", { layer: "viewability" });
     }
 
     if (!("IntersectionObserver" in window)) {
-      start();
-      return;
+      state.visible = true;
+    } else {
+      var observer = new IntersectionObserver(function (entries) {
+        var entry = entries[0];
+        if (entry && entry.isIntersecting && entry.intersectionRatio >= 0.5) markVisible();
+        else markHidden();
+      }, { threshold: [0, 0.5, 1] });
+
+      observer.observe(root);
     }
 
-    var observer = new IntersectionObserver(function (entries) {
-      var entry = entries[0];
-      if (entry && entry.isIntersecting && entry.intersectionRatio >= 0.5) start();
-      else pause();
-    }, { threshold: [0, 0.5, 1] });
+    state.nextIndex = 0;
+    track(config, "waterfall_initial_request", { layer: "vast" });
+    startHybridCycle(root, config, state);
+  }
 
-    observer.observe(root);
-    setStatus(root, "Waiting for viewable area");
+  function startHybridCycle(root, config, state) {
+    if (!state.active) return;
+    state.running = true;
+    state.currentLayer = "vast";
+    state.nextIndex = 0;
+    state.cycleId = (state.cycleId || 0) + 1;
+    var cycleId = state.cycleId;
+    var graceMs = Math.max(0, numberValue(config.vastGraceMs, 800));
+
+    setStatus(root, "", true);
+
+    var vastOutcome = fetchVast(config)
+      .then(function (vast) {
+        if (!vast || !vast.mediaUrl) throw new Error("no-valid-vast");
+        warmVastMedia(vast, config);
+        return { ad: vast, error: null };
+      })
+      .catch(function (error) {
+        track(config, "video_no_fill", { layer: "vast", reason: error.message });
+        return { ad: null, error: error };
+      });
+
+    var displayOutcome = fetchPreparedDisplay(config);
+    var grace = new Promise(function (resolve) {
+      window.setTimeout(function () { resolve({ type: "grace" }); }, graceMs);
+    });
+
+    Promise.race([
+      vastOutcome.then(function (outcome) { return { type: "vast", outcome: outcome }; }),
+      grace
+    ]).then(function (decision) {
+      if (!state.active || state.cycleId !== cycleId) return;
+
+      if (decision.type === "vast" && decision.outcome.ad) {
+        renderPreparedVideo(root, config, state, decision.outcome.ad, displayOutcome, cycleId);
+        return;
+      }
+
+      displayOutcome.then(function (prepared) {
+        if (!state.active || state.cycleId !== cycleId) return;
+        if (prepared && prepared.ad) {
+          renderPreparedDisplay(root, config, state, prepared, vastOutcome, cycleId);
+          return;
+        }
+
+        vastOutcome.then(function (outcome) {
+          if (!state.active || state.cycleId !== cycleId) return;
+          if (outcome.ad) {
+            renderPreparedVideo(root, config, state, outcome.ad, Promise.resolve(prepared), cycleId);
+          } else {
+            runRotationStep(root, config, state, 4);
+          }
+        });
+      });
+    });
+  }
+
+  function fetchPreparedDisplay(config) {
+    return fetchPrebidDecision(config)
+      .then(function (ad) {
+        return { ad: ad, name: "prebid", layerIndex: 1, nextIndex: 2 };
+      })
+      .catch(function (error) {
+        track(config, "prebid_no_fill", { layer: "prebid", reason: error.message });
+        return fetchAdserverDecision(config).then(function (ad) {
+          return { ad: ad, name: "adserver", layerIndex: 2, nextIndex: 3 };
+        });
+      })
+      .catch(function (error) {
+        track(config, "adserver_no_fill", { layer: "adserver", reason: error.message });
+        return fetchRemnantDecision(config).then(function (ad) {
+          return { ad: ad, name: "ortb", layerIndex: 3, nextIndex: 4 };
+        });
+      })
+      .catch(function (error) {
+        track(config, "final_no_fill", { layer: "ortb", reason: error.message });
+        return { ad: null, name: "", layerIndex: 3, nextIndex: 4 };
+      });
+  }
+
+  function renderPreparedVideo(root, config, state, vast, displayOutcome, cycleId) {
+    if (!state.active || state.cycleId !== cycleId) return;
+    state.currentLayer = "vast";
+    state.nextIndex = 0;
+    track(config, "rotation_layer_filled", { layer: "vast", cpm: vast.cpm || vast.nbxRankCpm || "" });
+
+    renderVideo(root, config, vast, function () {
+      if (!state.active || state.cycleId !== cycleId) return;
+      displayOutcome.then(function (prepared) {
+        if (!state.active || state.cycleId !== cycleId) return;
+        if (prepared && prepared.ad) {
+          renderPreparedDisplay(root, config, state, prepared, null, cycleId);
+        } else {
+          runRotationStep(root, config, state, 4);
+        }
+      });
+    });
+  }
+
+  function renderPreparedDisplay(root, config, state, prepared, pendingVastOutcome, cycleId) {
+    if (!state.active || state.cycleId !== cycleId) return;
+    state.currentLayer = prepared.name;
+    state.nextIndex = prepared.layerIndex;
+    renderDisplay(root, config, prepared.ad);
+    track(config, "rotation_layer_filled", {
+      layer: prepared.name,
+      cpm: prepared.ad.cpm || prepared.ad.nbxRankCpm || ""
+    });
+
+    clearTimer(state);
+    state.timer = window.setTimeout(function () {
+      if (!state.active || state.cycleId !== cycleId) return;
+      if (!pendingVastOutcome) {
+        runRotationStep(root, config, state, prepared.nextIndex);
+        return;
+      }
+
+      pendingVastOutcome.then(function (outcome) {
+        if (!state.active || state.cycleId !== cycleId) return;
+        if (!outcome.ad) {
+          runRotationStep(root, config, state, prepared.nextIndex);
+          return;
+        }
+
+        state.currentLayer = "vast";
+        state.nextIndex = Math.max(0, prepared.nextIndex - 1);
+        track(config, "rotation_layer_filled", { layer: "vast", cpm: outcome.ad.cpm || outcome.ad.nbxRankCpm || "" });
+        renderVideo(root, config, outcome.ad, function () {
+          if (!state.active || state.cycleId !== cycleId) return;
+          runRotationStep(root, config, state, prepared.nextIndex);
+        });
+      });
+    }, Math.max(state.durationMs, state.minRenderMs));
   }
 
   function runRotationStep(root, config, state, index) {
     if (!state.active) return;
+    state.running = true;
 
     var layers = [
       {
@@ -146,10 +292,15 @@
 
     if (index >= layers.length) {
       track(config, "rotation_cycle_complete", { layer: "rotation" });
+      state.running = false;
       state.nextIndex = 0;
-      state.timer = window.setTimeout(function () {
-        runRotationStep(root, config, state, 0);
-      }, 300);
+      if (state.visible) {
+        state.timer = window.setTimeout(function () {
+          startHybridCycle(root, config, state);
+        }, 300);
+      } else {
+        state.pendingRestart = true;
+      }
       return;
     }
 
@@ -292,12 +443,33 @@
     vastTags = uniqueDemand(vastTags, "endpoint");
     if (!vastTags.length) return Promise.reject(new Error("missing-vast-url"));
 
-    return tryVastTags(vastTags, config, 0);
+    return auctionVastTags(vastTags, config);
   }
 
-  function tryVastTags(vastTags, config, index) {
-    if (index >= vastTags.length) return Promise.reject(new Error("all-vast-no-fill"));
-    var vastItem = vastTags[index];
+  function auctionVastTags(vastTags, config) {
+    return Promise.all(vastTags.map(function (vastItem, index) {
+      return fetchVastTag(vastItem, config)
+        .then(function (vast) {
+          return {
+            vast: vast,
+            index: index,
+            rank: numberValue(vastItem.floorCpm, numberValue(vastItem.priority, 0))
+          };
+        })
+        .catch(function (error) {
+          track(config, "vast_tag_failed", { layer: "premium-vast", reason: error.message });
+          return null;
+        });
+    })).then(function (results) {
+      var winners = results.filter(Boolean).sort(function (a, b) {
+        return b.rank - a.rank || a.index - b.index;
+      });
+      if (!winners.length) throw new Error("all-vast-no-fill");
+      return winners[0].vast;
+    });
+  }
+
+  function fetchVastTag(vastItem, config) {
     var vastTmax = numberValue(vastItem.timeoutMs, config.timeoutMs || 1800);
     var vastUrl = expandMacros(vastItem.endpoint || vastItem, config, vastTmax);
 
@@ -321,10 +493,6 @@
           layer: "premium-vast",
           sourceUrl: vastUrl
         };
-      })
-      .catch(function (error) {
-        track(config, "vast_tag_failed", { layer: "premium-vast", reason: error.message });
-        return tryVastTags(vastTags, config, index + 1);
       });
   }
 
@@ -364,17 +532,29 @@
     });
     htmlTags = auctionItems(htmlTags, "html");
 
-    if (config.displayScriptUrl) scripts.unshift(config.displayScriptUrl);
-    if (htmlTags.length) {
-      return Promise.resolve({
-        adType: "adserver-html",
-        html: decodePayload(htmlTags[0].html),
-        layer: "adserver-html-tag"
-      });
-    }
-    if (!scripts.length) return Promise.reject(new Error("missing-adserver-tags"));
+    if (config.displayScriptUrl) scripts.unshift({ endpoint: config.displayScriptUrl, floorCpm: 0 });
 
-    return tryScriptTags(scripts.map(function (item) { return item.endpoint || item; }), 0);
+    var candidates = htmlTags.map(function (item) {
+      return {
+        adType: "adserver-html",
+        html: decodePayload(item.html),
+        layer: "adserver-html-tag",
+        sourceName: item.name || "MI HTML"
+      };
+    }).concat(scripts.map(function (item) {
+      return {
+        adType: "display-js",
+        scriptUrl: item.endpoint || item,
+        layer: "adserver-js-tag",
+        sourceName: item.name || "Display JS"
+      };
+    }));
+
+    if (!candidates.length) return Promise.reject(new Error("missing-adserver-tags"));
+
+    var cursor = numberValue(config.__adserverCursor, 0);
+    config.__adserverCursor = cursor + 1;
+    return Promise.resolve(candidates[cursor % candidates.length]);
   }
 
   function tryScriptTags(scripts, index) {
@@ -494,8 +674,6 @@
   function renderVideo(root, config, vast, onDone) {
     clear(root);
     markRenderStart(root);
-    track(config, "impression", { layer: vast.layer });
-    pixel(vast.impressionUrl);
 
     var link = document.createElement("a");
     link.href = vast.clickUrl || config.clickUrl || "#";
@@ -503,8 +681,9 @@
     link.rel = "noopener noreferrer";
     link.className = "nbx-click";
 
-    var video = document.createElement("video");
-    video.src = vast.mediaUrl;
+    var video = vast.__nbxPreloadedVideo || document.createElement("video");
+    vast.__nbxPreloadedVideo = null;
+    if (!video.src) video.src = vast.mediaUrl;
     video.width = config.width;
     video.height = config.height;
     video.muted = true;
@@ -519,7 +698,14 @@
     label.textContent = "Ad";
 
     var fired = {};
-    video.addEventListener("play", function () { fireOnce(fired, "start", vast, config); });
+    video.addEventListener("playing", function () {
+      if (!fired.impression) {
+        fired.impression = true;
+        track(config, "impression", { layer: vast.layer });
+        pixel(vast.impressionUrl);
+      }
+      fireOnce(fired, "start", vast, config);
+    });
     video.addEventListener("timeupdate", function () {
       var ratio = video.duration ? video.currentTime / video.duration : 0;
       if (ratio >= 0.25) fireOnce(fired, "firstQuartile", vast, config);
@@ -645,13 +831,13 @@
 
     var style = document.createElement("style");
     style.textContent = [
-      ".nbx-root{position:relative;overflow:hidden;background:#f3f6fb;color:#102033;font-family:Arial,Helvetica,sans-serif;line-height:1;}",
+      ".nbx-root{position:relative;overflow:hidden;background:transparent;color:#102033;font-family:Arial,Helvetica,sans-serif;line-height:1;}",
       ".nbx-click{display:block;width:100%;height:100%;text-decoration:none;color:inherit;}",
       ".nbx-video,.nbx-image,.nbx-frame{display:block;width:100%;height:100%;border:0;object-fit:cover;}",
       ".nbx-label{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.62);color:#fff;font-size:10px;padding:3px 5px;border-radius:3px;}",
       ".nbx-brand{position:absolute;top:6px;left:6px;z-index:2;width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:700;font-size:16px;color:#1769e0;letter-spacing:0;}",
       ".nbx-brand img{display:block;width:100%;height:100%;object-fit:contain;}",
-      ".nbx-status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#536273;background:#f7f9fc;}",
+      ".nbx-status{position:absolute;inset:0;background:transparent;}",
       ".nbx-empty{background:transparent;}"
     ].join("");
 
@@ -683,8 +869,44 @@
     clear(root);
     var status = document.createElement("div");
     status.className = "nbx-status";
-    status.textContent = message;
+    status.setAttribute("aria-hidden", "true");
     root.appendChild(status);
+  }
+
+  function warmVastMedia(vast, config) {
+    if (!vast || !vast.mediaUrl || vast.__nbxPreloadedVideo) return vast;
+    var video = document.createElement("video");
+    video.src = vast.mediaUrl;
+    video.width = config.width;
+    video.height = config.height;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    try { video.load(); } catch (_) {}
+    vast.__nbxPreloadedVideo = video;
+    return vast;
+  }
+
+  function preconnectDemand(config) {
+    var urls = [];
+    arrayFrom(config.vastDemand).forEach(function (item) { if (item.endpoint) urls.push(item.endpoint); });
+    listFrom(config.vastTags).forEach(function (url) { urls.push(url); });
+    arrayFrom(config.adserverScriptDemand).forEach(function (item) { if (item.endpoint) urls.push(item.endpoint); });
+    listFrom(config.adserverScriptUrls).forEach(function (url) { urls.push(url); });
+
+    var origins = {};
+    urls.forEach(function (value) {
+      try {
+        var origin = new URL(value, window.location.href).origin;
+        if (!origin || origins[origin]) return;
+        origins[origin] = true;
+        var link = document.createElement("link");
+        link.rel = "preconnect";
+        link.href = origin;
+        link.crossOrigin = "anonymous";
+        document.head.appendChild(link);
+      } catch (_) {}
+    });
   }
 
   function clear(root) {
