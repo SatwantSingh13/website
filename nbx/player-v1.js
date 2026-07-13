@@ -56,10 +56,12 @@
 
   function startViewableRotation(root, config) {
     var state = {
-      active: false,
+      active: true,
       visible: false,
       timer: null,
       currentLayer: "",
+      running: true,
+      pendingRestart: false,
       durationMs: numberValue(config.rotationMs, 10000),
       minRenderMs: Math.max(5000, numberValue(config.minRenderMs, 5000)),
       hasRenderedAd: false,
@@ -76,40 +78,47 @@
       });
     };
 
-    function start() {
-      if (state.active) return;
-      state.active = true;
+    function markVisible() {
+      if (state.visible) return;
       state.visible = true;
-      state.nextIndex = 0;
       track(config, "viewable_start", { layer: "viewability" });
-      runRotationStep(root, config, state, 0);
+      if (state.pendingRestart && !state.running) {
+        state.pendingRestart = false;
+        state.nextIndex = 0;
+        runRotationStep(root, config, state, 0);
+      }
     }
 
-    function pause() {
-      if (!state.active) return;
-      state.active = false;
+    function markHidden() {
+      if (!state.visible) return;
       state.visible = false;
-      clearTimer(state);
+      if (!state.running) {
+        clearTimer(state);
+        state.pendingRestart = true;
+      }
       track(config, "viewable_pause", { layer: "viewability" });
     }
 
     if (!("IntersectionObserver" in window)) {
-      start();
-      return;
+      state.visible = true;
+    } else {
+      var observer = new IntersectionObserver(function (entries) {
+        var entry = entries[0];
+        if (entry && entry.isIntersecting && entry.intersectionRatio >= 0.5) markVisible();
+        else markHidden();
+      }, { threshold: [0, 0.5, 1] });
+
+      observer.observe(root);
     }
 
-    var observer = new IntersectionObserver(function (entries) {
-      var entry = entries[0];
-      if (entry && entry.isIntersecting && entry.intersectionRatio >= 0.5) start();
-      else pause();
-    }, { threshold: [0, 0.5, 1] });
-
-    observer.observe(root);
-    setStatus(root, "Waiting for viewable area");
+    state.nextIndex = 0;
+    track(config, "waterfall_initial_request", { layer: "vast" });
+    runRotationStep(root, config, state, 0);
   }
 
   function runRotationStep(root, config, state, index) {
     if (!state.active) return;
+    state.running = true;
 
     var layers = [
       {
@@ -146,10 +155,15 @@
 
     if (index >= layers.length) {
       track(config, "rotation_cycle_complete", { layer: "rotation" });
+      state.running = false;
       state.nextIndex = 0;
-      state.timer = window.setTimeout(function () {
-        runRotationStep(root, config, state, 0);
-      }, 300);
+      if (state.visible) {
+        state.timer = window.setTimeout(function () {
+          runRotationStep(root, config, state, 0);
+        }, 300);
+      } else {
+        state.pendingRestart = true;
+      }
       return;
     }
 
