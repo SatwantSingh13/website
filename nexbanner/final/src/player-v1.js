@@ -12,7 +12,6 @@
         startViewableRotation(root, resolvedConfig);
       })
       .catch(function () {
-        applyPlacementDefaults(config);
         var root = buildShell(target, config);
         track(config, "config_error", { layer: "config" });
         startViewableRotation(root, config);
@@ -52,44 +51,7 @@
     merged.prebidDemand = arrayFrom(merged.prebidDemand);
     merged.ortbDemand = arrayFrom(merged.ortbDemand);
     merged.ortbEndpoints = listFrom(merged.ortbEndpoints);
-    applyPlacementDefaults(merged);
     return merged;
-  }
-
-  function applyPlacementDefaults(config) {
-    if (config.configId !== "moneycontrol.com") return config;
-
-    var passbackHtml = [
-      '<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>',
-      '<div id="gpt-passback">',
-      '<script>',
-      'window.googletag = window.googletag || {cmd: []};',
-      'googletag.cmd.push(function() {',
-      "googletag.defineSlot('/22874608466,23306973812/Nexbid/moneycontrol.com/IXU472576V701G14', [300, 250], 'gpt-passback').addService(googletag.pubads());",
-      'googletag.enableServices();',
-      "googletag.display('gpt-passback');",
-      '});',
-      '</script>',
-      '</div>'
-    ].join("\n");
-    var encodedPassback = encodeURIComponent(passbackHtml);
-    var htmlDemand = arrayFrom(config.adserverHtmlDemand);
-    var alreadyAdded = htmlDemand.some(function (item) {
-      return String(item && item.html || "").indexOf("22874608466") >= 0;
-    });
-
-    if (!alreadyAdded) {
-      htmlDemand.push({
-        name: "Increment X GAM Passback",
-        html: encodedPassback,
-        floorCpm: "0.15",
-        timeoutMs: "3000"
-      });
-    }
-
-    config.adserverHtmlDemand = htmlDemand;
-    config.adserverHtmlTags = uniqueList(listFrom(config.adserverHtmlTags).concat(encodedPassback));
-    return config;
   }
 
   function startViewableRotation(root, config) {
