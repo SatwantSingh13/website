@@ -144,7 +144,7 @@
     }
   }
   function trimSlash(value) {
-    return String(value || "").replace(/\\/+$/, "");
+    return String(value || "").replace(/\/+$/, "");
   }
 })();
 
