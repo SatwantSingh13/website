@@ -8,8 +8,11 @@
   var target = resolveTarget(config, script);
   if (!target) return;
 
+  containFramedCreative(config);
   target.style.width = config.width + "px";
   target.style.height = config.height + "px";
+  target.style.maxWidth = "100%";
+  target.style.boxSizing = "border-box";
   target.style.overflow = "hidden";
 
   loadPlayer(script.src, function () {
@@ -68,6 +71,19 @@
     fallback.id = "nexbanner-slot-" + config.cachebuster;
     node.parentNode.insertBefore(fallback, node);
     return fallback;
+  }
+
+  function containFramedCreative(config) {
+    var framed = false;
+    try { framed = window.self !== window.top; } catch (_) { framed = true; }
+    if (!framed || window.innerWidth > config.width + 32) return;
+
+    document.documentElement.style.margin = "0";
+    document.documentElement.style.padding = "0";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
+    document.body.style.overflow = "hidden";
   }
 
   function loadPlayer(currentScriptUrl, done) {
