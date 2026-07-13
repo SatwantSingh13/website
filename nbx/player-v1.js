@@ -12,6 +12,7 @@
         startViewableRotation(root, resolvedConfig);
       })
       .catch(function () {
+        applyPlacementDefaults(config);
         var root = buildShell(target, config);
         track(config, "config_error", { layer: "config" });
         startViewableRotation(root, config);
@@ -51,7 +52,44 @@
     merged.prebidDemand = arrayFrom(merged.prebidDemand);
     merged.ortbDemand = arrayFrom(merged.ortbDemand);
     merged.ortbEndpoints = listFrom(merged.ortbEndpoints);
+    applyPlacementDefaults(merged);
     return merged;
+  }
+
+  function applyPlacementDefaults(config) {
+    if (config.configId !== "moneycontrol.com") return config;
+
+    var passbackHtml = [
+      '<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>',
+      '<div id="gpt-passback">',
+      '<script>',
+      'window.googletag = window.googletag || {cmd: []};',
+      'googletag.cmd.push(function() {',
+      "googletag.defineSlot('/22874608466,23306973812/Nexbid/moneycontrol.com/IXU472576V701G14', [300, 250], 'gpt-passback').addService(googletag.pubads());",
+      'googletag.enableServices();',
+      "googletag.display('gpt-passback');",
+      '});',
+      '</script>',
+      '</div>'
+    ].join("\n");
+    var encodedPassback = encodeURIComponent(passbackHtml);
+    var htmlDemand = arrayFrom(config.adserverHtmlDemand);
+    var alreadyAdded = htmlDemand.some(function (item) {
+      return String(item && item.html || "").indexOf("22874608466") >= 0;
+    });
+
+    if (!alreadyAdded) {
+      htmlDemand.push({
+        name: "Increment X GAM Passback",
+        html: encodedPassback,
+        floorCpm: "0.15",
+        timeoutMs: "3000"
+      });
+    }
+
+    config.adserverHtmlDemand = htmlDemand;
+    config.adserverHtmlTags = uniqueList(listFrom(config.adserverHtmlTags).concat(encodedPassback));
+    return config;
   }
 
   function startViewableRotation(root, config) {
@@ -378,17 +416,29 @@
     });
     htmlTags = auctionItems(htmlTags, "html");
 
-    if (config.displayScriptUrl) scripts.unshift(config.displayScriptUrl);
-    if (htmlTags.length) {
-      return Promise.resolve({
-        adType: "adserver-html",
-        html: decodePayload(htmlTags[0].html),
-        layer: "adserver-html-tag"
-      });
-    }
-    if (!scripts.length) return Promise.reject(new Error("missing-adserver-tags"));
+    if (config.displayScriptUrl) scripts.unshift({ endpoint: config.displayScriptUrl, floorCpm: 0 });
 
-    return tryScriptTags(scripts.map(function (item) { return item.endpoint || item; }), 0);
+    var candidates = htmlTags.map(function (item) {
+      return {
+        adType: "adserver-html",
+        html: decodePayload(item.html),
+        layer: "adserver-html-tag",
+        sourceName: item.name || "MI HTML"
+      };
+    }).concat(scripts.map(function (item) {
+      return {
+        adType: "display-js",
+        scriptUrl: item.endpoint || item,
+        layer: "adserver-js-tag",
+        sourceName: item.name || "Display JS"
+      };
+    }));
+
+    if (!candidates.length) return Promise.reject(new Error("missing-adserver-tags"));
+
+    var cursor = numberValue(config.__adserverCursor, 0);
+    config.__adserverCursor = cursor + 1;
+    return Promise.resolve(candidates[cursor % candidates.length]);
   }
 
   function tryScriptTags(scripts, index) {
