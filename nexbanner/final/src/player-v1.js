@@ -305,12 +305,33 @@
     vastTags = uniqueDemand(vastTags, "endpoint");
     if (!vastTags.length) return Promise.reject(new Error("missing-vast-url"));
 
-    return tryVastTags(vastTags, config, 0);
+    return auctionVastTags(vastTags, config);
   }
 
-  function tryVastTags(vastTags, config, index) {
-    if (index >= vastTags.length) return Promise.reject(new Error("all-vast-no-fill"));
-    var vastItem = vastTags[index];
+  function auctionVastTags(vastTags, config) {
+    return Promise.all(vastTags.map(function (vastItem, index) {
+      return fetchVastTag(vastItem, config)
+        .then(function (vast) {
+          return {
+            vast: vast,
+            index: index,
+            rank: numberValue(vastItem.floorCpm, numberValue(vastItem.priority, 0))
+          };
+        })
+        .catch(function (error) {
+          track(config, "vast_tag_failed", { layer: "premium-vast", reason: error.message });
+          return null;
+        });
+    })).then(function (results) {
+      var winners = results.filter(Boolean).sort(function (a, b) {
+        return b.rank - a.rank || a.index - b.index;
+      });
+      if (!winners.length) throw new Error("all-vast-no-fill");
+      return winners[0].vast;
+    });
+  }
+
+  function fetchVastTag(vastItem, config) {
     var vastTmax = numberValue(vastItem.timeoutMs, config.timeoutMs || 1800);
     var vastUrl = expandMacros(vastItem.endpoint || vastItem, config, vastTmax);
 
@@ -334,10 +355,6 @@
           layer: "premium-vast",
           sourceUrl: vastUrl
         };
-      })
-      .catch(function (error) {
-        track(config, "vast_tag_failed", { layer: "premium-vast", reason: error.message });
-        return tryVastTags(vastTags, config, index + 1);
       });
   }
 
