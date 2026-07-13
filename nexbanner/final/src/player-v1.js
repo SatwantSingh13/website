@@ -8,7 +8,6 @@
       .then(function (resolvedConfig) {
         var root = buildShell(target, resolvedConfig);
         track(resolvedConfig, "ad_request", { layer: "gam-entry" });
-        track(resolvedConfig, "load", { layer: "gam-entry" });
         startViewableRotation(root, resolvedConfig);
       })
       .catch(function () {
