@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   window.NexBannerPlayer = { mount: mount };
@@ -560,7 +560,18 @@
       };
     }).concat(scripts.map(function (item) {
       return {
-…103 tokens truncated…didates.length]);
+        adType: "display-js",
+        scriptUrl: item.endpoint || item,
+        layer: "adserver-js-tag",
+        sourceName: item.name || "Display JS"
+      };
+    }));
+
+    if (!candidates.length) return Promise.reject(new Error("missing-adserver-tags"));
+
+    var cursor = numberValue(config.__adserverCursor, 0);
+    config.__adserverCursor = cursor + 1;
+    return Promise.resolve(candidates[cursor % candidates.length]);
   }
 
   function tryScriptTags(scripts, index) {
@@ -1104,4 +1115,3 @@
     return String(value || "").replace(/\/+$/, "");
   }
 })();
-
