@@ -8,6 +8,7 @@
   var target = resolveTarget(config, script);
   if (!target) return;
 
+  preloadConfig(config);
   containFramedCreative(config);
   target.style.width = config.width + "px";
   target.style.height = config.height + "px";
@@ -57,8 +58,26 @@
       impressionUrl: data.impressionUrl || "",
       errorUrl: data.errorUrl || "",
       timeoutMs: numberOr(data.timeoutMs, 1800),
+      configTimeoutMs: numberOr(data.configTimeoutMs, 3000),
       cachebuster: String(Date.now()) + Math.floor(Math.random() * 1000000)
     };
+  }
+
+  function preloadConfig(config) {
+    if (!config.configId || !window.fetch) return;
+
+    var endpoint = config.configEndpoint ||
+      trimSlash(config.apiBase) + "/api/v1/config/" + encodeURIComponent(config.configId);
+    var pending = fetch(endpoint, { credentials: "omit" }).then(function (response) {
+      if (!response.ok) throw new Error("config-http-" + response.status);
+      return response.json();
+    });
+
+    Object.defineProperty(config, "__configPromise", {
+      configurable: false,
+      enumerable: false,
+      value: pending
+    });
   }
 
   function resolveTarget(config, node) {
@@ -123,6 +142,9 @@
     } catch (_) {
       return fallback;
     }
+  }
+  function trimSlash(value) {
+    return String(value || "").replace(/\\/+$/, "");
   }
 })();
 
