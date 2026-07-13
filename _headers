@@ -1,0 +1,11 @@
+/nbx/v1.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/nbx/player-v1.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/nexbanner/final/src/nexbanner-gam.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/nexbanner/final/src/player-v1.js
+  Cache-Control: public, max-age=0, must-revalidate
