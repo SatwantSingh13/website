@@ -560,18 +560,7 @@
       };
     }).concat(scripts.map(function (item) {
       return {
-        adType: "display-js",
-        scriptUrl: item.endpoint || item,
-        layer: "adserver-js-tag",
-        sourceName: item.name || "Display JS"
-      };
-    }));
-
-    if (!candidates.length) return Promise.reject(new Error("missing-adserver-tags"));
-
-    var cursor = numberValue(config.__adserverCursor, 0);
-    config.__adserverCursor = cursor + 1;
-    return Promise.resolve(candidates[cursor % candidates.length]);
+…103 tokens truncated…didates.length]);
   }
 
   function tryScriptTags(scripts, index) {
@@ -767,8 +756,20 @@
       frame.setAttribute("frameborder", "0");
       frame.className = "nbx-frame";
       root.appendChild(frame);
+      var html = [
+        "<!doctype html>",
+        "<html><head><meta charset=\"utf-8\">",
+        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">",
+        "<style>",
+        "html,body{margin:0!important;padding:0!important;width:" + config.width + "px;height:" + config.height + "px;overflow:hidden;background:transparent}",
+        "#gpt-passback{margin:0!important;padding:0!important;width:" + config.width + "px;height:" + config.height + "px;overflow:hidden}",
+        "iframe{display:block;margin:0;border:0;max-width:100%}",
+        "</style></head><body>",
+        ad.html,
+        "</body></html>"
+      ].join("");
       frame.contentWindow.document.open();
-      frame.contentWindow.document.write(ad.html);
+      frame.contentWindow.document.write(html);
       frame.contentWindow.document.close();
       root.appendChild(brandBadge(config));
       return;
