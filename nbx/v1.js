@@ -54,7 +54,7 @@
       clickUrl: data.clickUrl || "",
       logoUrl: data.logoUrl || "",
       logoText: data.logoText || "N",
-      trackUrl: data.trackUrl || "",
+      trackUrl: data.trackUrl || trimSlash(data.apiBase || "https://nexbid.uk") + "/api/v1/track",
       impressionUrl: data.impressionUrl || "",
       errorUrl: data.errorUrl || "",
       timeoutMs: numberOr(data.timeoutMs, 1800),
