@@ -92,10 +92,13 @@
       return;
     }
 
-    var playerUrl = new URL("player-v1.js", currentScriptUrl).toString();
+    var loaderUrl = new URL(currentScriptUrl, window.location.href);
+    var playerUrl = new URL("player-v1.js", loaderUrl);
+    var version = loaderUrl.searchParams.get("v");
+    if (version) playerUrl.searchParams.set("v", version);
     var playerScript = document.createElement("script");
     playerScript.async = true;
-    playerScript.src = playerUrl;
+    playerScript.src = playerUrl.toString();
     playerScript.onload = done;
     playerScript.onerror = done;
     document.head.appendChild(playerScript);
