@@ -23,11 +23,13 @@
     var endpoint = config.configEndpoint ||
       trimSlash(config.apiBase || "https://nexbid.uk") + "/api/v1/config/" + encodeURIComponent(config.configId);
 
-    return withTimeout(fetch(endpoint, { credentials: "omit" }), config.timeoutMs || 1800)
+    var remoteConfig = config.__configPromise || fetch(endpoint, { credentials: "omit" })
       .then(function (response) {
         if (!response.ok) throw new Error("config-http-" + response.status);
         return response.json();
-      })
+      });
+
+    return withTimeout(remoteConfig, config.configTimeoutMs || 3000)
       .then(function (remoteConfig) {
         return mergeConfig(config, remoteConfig || {});
       });
