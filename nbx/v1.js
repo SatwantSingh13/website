@@ -58,6 +58,7 @@
       impressionUrl: data.impressionUrl || "",
       errorUrl: data.errorUrl || "",
       timeoutMs: numberOr(data.timeoutMs, 1800),
+      vastGraceMs: numberOr(data.vastGraceMs, 800),
       configTimeoutMs: numberOr(data.configTimeoutMs, 3000),
       cachebuster: String(Date.now()) + Math.floor(Math.random() * 1000000)
     };
