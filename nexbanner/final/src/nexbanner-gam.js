@@ -58,6 +58,7 @@
       impressionUrl: data.impressionUrl || "",
       errorUrl: data.errorUrl || "",
       timeoutMs: numberOr(data.timeoutMs, 1800),
+      vastGraceMs: numberOr(data.vastGraceMs, 800),
       configTimeoutMs: numberOr(data.configTimeoutMs, 3000),
       cachebuster: String(Date.now()) + Math.floor(Math.random() * 1000000)
     };
@@ -112,7 +113,7 @@
     }
 
     var loaderUrl = new URL(currentScriptUrl, window.location.href);
-    var playerUrl = new URL("player-v1.js", loaderUrl);
+    var playerUrl = new URL("nexbanner-player.js", loaderUrl);
     var version = loaderUrl.searchParams.get("v") || "20260713-2";
     playerUrl.searchParams.set("v", version);
     var playerScript = document.createElement("script");
@@ -143,6 +144,7 @@
       return fallback;
     }
   }
+
   function trimSlash(value) {
     return String(value || "").replace(/\/+$/, "");
   }
