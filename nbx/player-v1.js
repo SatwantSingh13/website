@@ -4,10 +4,10 @@
   window.NexBannerPlayer = { mount: mount };
 
   function mount(target, config) {
+    track(config, "ad_request", { layer: "gam-entry" });
     loadConfig(config)
       .then(function (resolvedConfig) {
         var root = buildShell(target, resolvedConfig);
-        track(resolvedConfig, "ad_request", { layer: "gam-entry" });
         startViewableRotation(root, resolvedConfig);
       })
       .catch(function () {
@@ -689,13 +689,13 @@
 
     var style = document.createElement("style");
     style.textContent = [
-      ".nbx-root{position:relative;overflow:hidden;background:#f3f6fb;color:#102033;font-family:Arial,Helvetica,sans-serif;line-height:1;}",
+      ".nbx-root{position:relative;overflow:hidden;background:transparent;color:#102033;font-family:Arial,Helvetica,sans-serif;line-height:1;}",
       ".nbx-click{display:block;width:100%;height:100%;text-decoration:none;color:inherit;}",
       ".nbx-video,.nbx-image,.nbx-frame{display:block;width:100%;height:100%;border:0;object-fit:cover;}",
       ".nbx-label{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.62);color:#fff;font-size:10px;padding:3px 5px;border-radius:3px;}",
       ".nbx-brand{position:absolute;top:6px;left:6px;z-index:2;width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:700;font-size:16px;color:#1769e0;letter-spacing:0;}",
       ".nbx-brand img{display:block;width:100%;height:100%;object-fit:contain;}",
-      ".nbx-status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#536273;background:#f7f9fc;}",
+      ".nbx-status{position:absolute;inset:0;background:transparent;}",
       ".nbx-empty{background:transparent;}"
     ].join("");
 
@@ -727,7 +727,7 @@
     clear(root);
     var status = document.createElement("div");
     status.className = "nbx-status";
-    status.textContent = message;
+    status.setAttribute("aria-hidden", "true");
     root.appendChild(status);
   }
 
