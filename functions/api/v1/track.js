@@ -56,6 +56,7 @@ async function incrementSummary(store, key, event) {
   const summary = current || {
     key,
     adRequests: 0,
+    measuredRequests: 0,
     filledRequests: 0,
     viewableRequests: 0,
     deliveredAds: 0,
@@ -88,9 +89,13 @@ async function incrementSummary(store, key, event) {
   if (event.productVersion) summary.versions[event.productVersion] = (summary.versions[event.productVersion] || 0) + 1;
 
   if (summary.adRequests === undefined) summary.adRequests = 0;
+  if (summary.measuredRequests === undefined) summary.measuredRequests = 0;
   if (summary.filledRequests === undefined) summary.filledRequests = 0;
   if (summary.impressionRevenue === undefined) summary.impressionRevenue = 0;
-  if (event.event === "ad_request") summary.adRequests += 1;
+  if (event.event === "ad_request") {
+    summary.adRequests += 1;
+    if (event.requestId) summary.measuredRequests += 1;
+  }
   if (event.event === "request_filled") summary.filledRequests += 1;
   if (event.event === "partner_request" && partnerName) summary.partners[partnerName].requests += 1;
   if (event.event === "viewable_start") summary.viewableRequests += 1;
