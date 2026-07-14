@@ -48,6 +48,8 @@ async function writeExactMarkers(store, event) {
       partnerName: event.partnerName || "",
       layer: event.layer || "",
       cpm: Number(event.cpm || 0) || 0,
+      event: event.event || "",
+      reason: event.reason || "",
     },
   };
 
@@ -61,6 +63,9 @@ async function writeExactMarkers(store, event) {
   } else if (event.event === "partner_request" && event.partnerName) {
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     await store.put(`exact:${date}:${scope}:partner-request:${suffix}`, "1", options);
+  } else if (event.partnerName && (event.event === "partner_no_fill" || event.event.includes("error") || event.event.includes("failed") || event.event.includes("no_fill"))) {
+    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await store.put(`exact:${date}:${scope}:diagnostic:${suffix}`, "1", options);
   }
 }
 
