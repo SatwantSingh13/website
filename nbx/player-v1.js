@@ -522,11 +522,14 @@
         if (xml.querySelector("parsererror")) throw new Error("vast-parse-error");
 
         var media = supportedVastMedia(xml);
-        if (!media) throw new Error("vast-no-supported-video-media");
+        var vpaid = !media && vastItem.allowVpaid !== false ? supportedVpaidMedia(xml) : null;
+        if (!media && !vpaid) throw new Error("vast-no-supported-video-media");
 
         return {
-          mediaUrl: resolveUrl(media.url, vastUrl),
-          mediaType: media.type,
+          adType: vpaid ? "vpaid-js" : "vast-video",
+          mediaUrl: resolveUrl((vpaid || media).url, vastUrl),
+          mediaType: (vpaid || media).type,
+          adParameters: vpaid ? firstText(xml, "AdParameters") : "",
           clickUrl: firstText(xml, "ClickThrough") || config.clickUrl,
           impressionUrl: firstText(xml, "Impression"),
           tracking: trackingEvents(xml),
@@ -724,6 +727,11 @@
   }
 
   function renderVideo(root, config, vast, onDone) {
+    if (vast.adType === "vpaid-js") {
+      renderVpaid(root, config, vast, onDone);
+      return;
+    }
+
     clear(root);
     markRenderStart(root);
 
@@ -955,8 +963,106 @@
     root.appendChild(status);
   }
 
+  function renderVpaid(root, config, vast, onDone) {
+    clear(root);
+
+    var frame = document.createElement("iframe");
+    var token = makeRequestId();
+    var finished = false;
+    var started = false;
+    var startTimeoutMs = Math.max(3000, numberValue(config.vpaidStartTimeoutMs, 8000));
+    var maxDurationMs = Math.max(30000, numberValue(config.vpaidMaxDurationMs, 120000));
+    var timeout = window.setTimeout(function () { finish("vpaid-start-timeout"); }, startTimeoutMs);
+
+    frame.title = "NexBanner VPAID ad";
+    frame.width = config.width;
+    frame.height = config.height;
+    frame.className = "nbx-frame";
+    frame.setAttribute("scrolling", "no");
+    frame.setAttribute("frameborder", "0");
+    frame.setAttribute("sandbox", "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox");
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      window.removeEventListener("message", onMessage);
+      if (root.__nbxFrameCleanup === cleanup) root.__nbxFrameCleanup = null;
+    }
+
+    function finish(reason) {
+      if (finished) return;
+      finished = true;
+      cleanup();
+      if (reason && reason !== "complete") {
+        track(config, "vpaid_error", {
+          layer: vast.layer || "premium-vast",
+          partnerName: vast.sourceName || "VPAID",
+          reason: reason
+        });
+      }
+      if (typeof onDone === "function") onDone();
+      else advanceRotation(root, reason || "vpaid_complete");
+    }
+
+    function onMessage(event) {
+      var data = event.data || {};
+      if (finished || event.source !== frame.contentWindow || data.token !== token) return;
+      if (data.type !== "nexbanner-vpaid") return;
+
+      if (data.event === "started" && !started) {
+        started = true;
+        window.clearTimeout(timeout);
+        timeout = window.setTimeout(function () { finish("vpaid-duration-timeout"); }, maxDurationMs);
+        markRenderStart(root);
+        recordDeliveredImpression(
+          config,
+          vast.layer || "premium-vast",
+          vast.sourceName || "VPAID",
+          vast.cpm || vast.nbxRankCpm || ""
+        );
+        pixel(vast.impressionUrl);
+        fireOnce({}, "start", vast, config);
+        return;
+      }
+
+      if (data.event === "complete") {
+        fireOnce({}, "complete", vast, config);
+        finish("complete");
+      } else if (data.event === "error") {
+        finish(data.reason || "vpaid-error");
+      }
+    }
+
+    window.addEventListener("message", onMessage);
+    root.__nbxFrameCleanup = cleanup;
+    root.appendChild(frame);
+    root.appendChild(brandBadge(config));
+
+    var mediaUrlJson = jsonForInlineScript(vast.mediaUrl);
+    var adParametersJson = jsonForInlineScript(vast.adParameters || "");
+    var tokenJson = jsonForInlineScript(token);
+    frame.srcdoc = [
+      "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">",
+      "<style>html,body,#slot{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent}video{position:absolute;width:100%;height:100%;object-fit:contain}</style>",
+      "</head><body><div id=\"slot\"><video id=\"videoSlot\" muted playsinline></video></div><script>(function(){",
+      "var token=" + tokenJson + ",done=false,started=false,ad=null;",
+      "function send(event,reason){parent.postMessage({type:'nexbanner-vpaid',token:token,event:event,reason:reason||''},'*');}",
+      "function finish(event,reason){if(done)return;done=true;send(event,reason);}",
+      "function subscribe(name,fn){try{ad.subscribe(fn,name,window);}catch(e){}}",
+      "function boot(){try{if(typeof window.getVPAIDAd!=='function')throw new Error('missing-getVPAIDAd');ad=window.getVPAIDAd();if(!ad)throw new Error('missing-vpaid-object');var version=ad.handshakeVersion('2.0');if(!version)throw new Error('vpaid-handshake-failed');",
+      "subscribe('AdLoaded',function(){try{ad.startAd();}catch(e){finish('error','vpaid-start-failed');}});",
+      "subscribe('AdStarted',function(){if(!started){started=true;send('started');}});subscribe('AdImpression',function(){if(!started){started=true;send('started');}});",
+      "subscribe('AdVideoComplete',function(){finish('complete');});subscribe('AdStopped',function(){finish('complete');});subscribe('AdSkipped',function(){finish('complete');});",
+      "subscribe('AdError',function(message){finish('error',String(message||'vpaid-ad-error'));});",
+      "var slot=document.getElementById('slot'),videoSlot=document.getElementById('videoSlot');",
+      "ad.initAd(" + Number(config.width) + "," + Number(config.height) + ",'normal',-1,{AdParameters:" + adParametersJson + "},{slot:slot,videoSlot:videoSlot,videoSlotCanAutoPlay:true});",
+      "}catch(e){finish('error',String(e&&e.message||e));}}",
+      "var script=document.createElement('script');script.async=true;script.src=" + mediaUrlJson + ";script.onload=boot;script.onerror=function(){finish('error','vpaid-script-load-failed');};document.head.appendChild(script);",
+      "})();<\/script></body></html>"
+    ].join("");
+  }
+
   function warmVastMedia(vast, config) {
-    if (!vast || !vast.mediaUrl || vast.__nbxPreloadedVideo) return vast;
+    if (!vast || !vast.mediaUrl || vast.adType === "vpaid-js" || vast.__nbxPreloadedVideo) return vast;
     var video = document.createElement("video");
     video.src = vast.mediaUrl;
     video.width = config.width;
@@ -1109,6 +1215,19 @@
     return null;
   }
 
+  function supportedVpaidMedia(xml) {
+    var nodes = xml.querySelectorAll("MediaFile");
+    for (var index = 0; index < nodes.length; index += 1) {
+      var node = nodes[index];
+      var type = String(node.getAttribute("type") || "").toLowerCase();
+      var apiFramework = String(node.getAttribute("apiFramework") || "").toLowerCase();
+      var url = String(node.textContent || "").trim();
+      var isJavaScript = type.indexOf("javascript") >= 0 || /\.js(?:[?#]|$)/i.test(url);
+      if (url && apiFramework === "vpaid" && isJavaScript) return { url: url, type: type };
+    }
+    return null;
+  }
+
   function withTimeout(promise, timeoutMs) {
     var timeout;
     var timer = new Promise(function (_, reject) {
@@ -1250,6 +1369,10 @@
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;");
+  }
+
+  function jsonForInlineScript(value) {
+    return JSON.stringify(String(value || "")).replace(/</g, "\\u003c");
   }
 
   function decodePayload(value) {
