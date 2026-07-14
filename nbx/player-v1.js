@@ -4,6 +4,8 @@
   window.NexBannerPlayer = { mount: mount };
 
   function mount(target, config) {
+    config.requestId = config.requestId || makeRequestId();
+    config.__requestFilledTracked = false;
     track(config, "ad_request", { layer: "gam-entry" });
     loadConfig(config)
       .then(function (resolvedConfig) {
@@ -467,6 +469,8 @@
     return Promise.all(vastTags.map(function (vastItem, index) {
       return fetchVastTag(vastItem, config)
         .then(function (vast) {
+          vast.sourceName = vastItem.name || "VAST";
+          vast.cpm = numberValue(vastItem.floorCpm, numberValue(vastItem.priority, 0));
           return {
             vast: vast,
             index: index,
@@ -489,6 +493,10 @@
   function fetchVastTag(vastItem, config) {
     var vastTmax = numberValue(vastItem.timeoutMs, config.timeoutMs || 1800);
     var vastUrl = expandMacros(vastItem.endpoint || vastItem, config, vastTmax);
+    track(config, "partner_request", {
+      layer: "vast",
+      partnerName: vastItem.name || "VAST"
+    });
 
     return withTimeout(fetch(vastUrl, { credentials: "omit" }), vastTmax)
       .then(function (response) {
@@ -556,14 +564,16 @@
         adType: "adserver-html",
         html: decodePayload(item.html),
         layer: "adserver-html-tag",
-        sourceName: item.name || "MI HTML"
+        sourceName: item.name || "MI HTML",
+        cpm: numberValue(item.floorCpm, 0)
       };
     }).concat(scripts.map(function (item) {
       return {
         adType: "display-js",
         scriptUrl: item.endpoint || item,
         layer: "adserver-js-tag",
-        sourceName: item.name || "Display JS"
+        sourceName: item.name || "Display JS",
+        cpm: numberValue(item.floorCpm, 0)
       };
     }));
 
@@ -571,7 +581,12 @@
 
     var cursor = numberValue(config.__adserverCursor, 0);
     config.__adserverCursor = cursor + 1;
-    return Promise.resolve(candidates[cursor % candidates.length]);
+    var selected = candidates[cursor % candidates.length];
+    track(config, "partner_request", {
+      layer: "adserver",
+      partnerName: selected.sourceName
+    });
+    return Promise.resolve(selected);
   }
 
   function tryScriptTags(scripts, index) {
@@ -616,7 +631,7 @@
     }), "endpoint");
     if (endpoints.length) {
       return auctionJsonDemand(endpoints.map(function (item) {
-        return { endpoint: item.endpoint, params: "", timeoutMs: item.timeoutMs, floorCpm: item.floorCpm };
+        return { name: item.name, endpoint: item.endpoint, params: "", timeoutMs: item.timeoutMs, floorCpm: item.floorCpm };
       }), config, "remnant-ortb").catch(function (error) {
         if (!config.remnantImageUrl) throw error;
         track(config, "remnant_auction_no_fill", { layer: "remnant-ortb", reason: error.message });
@@ -639,10 +654,13 @@
 
   function auctionJsonDemand(demand, config, layer) {
     var bids = demand.map(function (item) {
+      var partnerName = item.name || layer;
+      track(config, "partner_request", { layer: layer, partnerName: partnerName });
       return jsonEndpoint(item.endpoint, config, layer, item.params, item.timeoutMs)
         .then(function (ad) {
           ad.nbxEndpoint = item.endpoint;
           ad.nbxRankCpm = numberValue(ad.cpm, item.floorCpm);
+          ad.sourceName = ad.sourceName || partnerName;
           return ad;
         })
         .catch(function (error) {
@@ -718,7 +736,7 @@
     video.addEventListener("playing", function () {
       if (!fired.impression) {
         fired.impression = true;
-        track(config, "impression", { layer: vast.layer });
+        recordDeliveredImpression(config, vast.layer, vast.sourceName || "VAST", vast.cpm || vast.nbxRankCpm || "");
         pixel(vast.impressionUrl);
       }
       fireOnce(fired, "start", vast, config);
@@ -755,7 +773,12 @@
   function renderDisplay(root, config, ad) {
     clear(root);
     markRenderStart(root);
-    track(config, "impression", { layer: ad.layer || "display" });
+    recordDeliveredImpression(
+      config,
+      ad.layer || "display",
+      ad.sourceName || ad.layer || "Display",
+      ad.cpm || ad.nbxRankCpm || ""
+    );
     pixel(ad.impressionUrl);
 
     if (ad.html) {
@@ -986,13 +1009,35 @@
     url.searchParams.set("publisher_id", config.publisherId);
     url.searchParams.set("publisher_domain", config.publisherDomain || domainFromPage());
     url.searchParams.set("placement_id", config.placementId);
+    url.searchParams.set("request_id", config.requestId || "");
     url.searchParams.set("layer", payload.layer || "");
+    url.searchParams.set("partner_name", payload.partnerName || "");
     url.searchParams.set("reason", payload.reason || "");
     url.searchParams.set("cpm", payload.cpm || "");
     url.searchParams.set("w", config.width);
     url.searchParams.set("h", config.height);
     url.searchParams.set("cb", String(Date.now()) + Math.floor(Math.random() * 100000));
     pixel(url.toString());
+  }
+
+  function recordDeliveredImpression(config, layer, partnerName, cpm) {
+    if (!config.__requestFilledTracked) {
+      config.__requestFilledTracked = true;
+      track(config, "request_filled", {
+        layer: layer,
+        partnerName: partnerName,
+        cpm: cpm
+      });
+    }
+    track(config, "impression", {
+      layer: layer,
+      partnerName: partnerName,
+      cpm: cpm
+    });
+  }
+
+  function makeRequestId() {
+    return "nbx-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
   }
 
   function pixel(url) {
