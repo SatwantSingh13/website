@@ -71,15 +71,10 @@
     refreshReport: document.getElementById("refreshReport"),
     autoRefreshReport: document.getElementById("autoRefreshReport"),
     metricAdRequests: document.getElementById("metricAdRequests"),
-    metricViewable: document.getElementById("metricViewable"),
-    metricDelivered: document.getElementById("metricDelivered"),
+    metricFilledRequests: document.getElementById("metricFilledRequests"),
     metricFillRate: document.getElementById("metricFillRate"),
-    metricNoFill: document.getElementById("metricNoFill"),
-    metricImpressions: document.getElementById("metricImpressions"),
-    metricErrors: document.getElementById("metricErrors"),
-    metricCycles: document.getElementById("metricCycles"),
-    metricRevenue: document.getElementById("metricRevenue"),
-    reportStatus: document.getElementById("reportStatus"),
+    metricEcpm: document.getElementById("metricEcpm"),
+    partnerReportBody: document.getElementById("partnerReportBody"),
     reportOutput: document.getElementById("reportOutput"),
     exportConfig: document.getElementById("exportConfig")
   };
@@ -92,7 +87,6 @@
   renderAdserverTags();
   renderOrtb();
   generateTag();
-  startReportAutoRefresh();
 
   els.demandForm.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -387,9 +381,7 @@
     }
 
     state.adserverTags.forEach(function (item) {
-      var label = item.tagType === "html" ? "Ad Server HTML / GAM" : "Ad Server JS";
-      var preview = item.tagType === "html" ? item.html : item.endpoint;
-      var node = demandNode(item, label, preview);
+      var node = demandNode(item, "Ad Server JS", item.endpoint);
       node.querySelector(".remove").addEventListener("click", function () {
         state.adserverTags = state.adserverTags.filter(function (existing) {
           return existing.id !== item.id;
@@ -583,11 +575,9 @@
       .then(function (result) {
         renderReport(result.summary || {});
         els.reportOutput.value = JSON.stringify(result, null, 2);
-        els.reportStatus.textContent = "Updated " + new Date().toLocaleTimeString();
       })
       .catch(function () {
         els.reportOutput.value = "Report unavailable. Check NEXBANNER_EVENTS KV binding.";
-        els.reportStatus.textContent = "Report unavailable";
       })
       .finally(function () {
         els.refreshReport.textContent = "Refresh Report";
@@ -596,25 +586,50 @@
 
   function renderReport(summary) {
     var adRequests = numberOr(summary.adRequests, 0);
-    var viewable = numberOr(summary.viewableRequests, 0);
-    var delivered = numberOr(summary.deliveredAds, 0);
-    var fillRate = viewable ? Math.round((delivered / viewable) * 1000) / 10 : 0;
+    var filledRequests = numberOr(summary.filledRequests, 0);
+    var impressions = numberOr(summary.impressions, 0);
+    var impressionRevenue = numberOr(summary.impressionRevenue, 0);
+    var fillRate = adRequests ? Math.round((filledRequests / adRequests) * 1000) / 10 : 0;
+    var ecpm = impressions && impressionRevenue > 0 ? (impressionRevenue / impressions) * 1000 : null;
 
     els.metricAdRequests.textContent = formatNumber(adRequests);
-    els.metricViewable.textContent = formatNumber(viewable);
-    els.metricDelivered.textContent = formatNumber(delivered);
+    els.metricFilledRequests.textContent = formatNumber(filledRequests);
     els.metricFillRate.textContent = fillRate + "%";
-    els.metricNoFill.textContent = formatNumber(numberOr(summary.noFill, 0));
-    els.metricImpressions.textContent = formatNumber(numberOr(summary.impressions, 0));
-    els.metricErrors.textContent = formatNumber(numberOr(summary.errors, 0));
-    els.metricCycles.textContent = formatNumber(numberOr(summary.cycles, 0));
-    els.metricRevenue.textContent = "$" + numberOr(summary.revenueEstimate, 0).toFixed(4);
+    els.metricEcpm.textContent = ecpm === null ? "N/A" : "$" + ecpm.toFixed(2);
+    renderPartnerReport(summary.partners || {});
   }
 
-  function startReportAutoRefresh() {
-    refreshReport();
-    reportTimer = setInterval(refreshReport, 5000);
-    els.autoRefreshReport.textContent = "Auto Refresh On";
+  function renderPartnerReport(partners) {
+    var rows = Object.keys(partners).map(function (name) {
+      var partner = partners[name] || {};
+      var requests = numberOr(partner.requests, 0);
+      var impressions = numberOr(partner.impressions, 0);
+      var revenue = numberOr(partner.revenueEstimate, 0);
+      return {
+        name: name,
+        requests: requests,
+        impressions: impressions,
+        fillRate: requests ? (impressions / requests) * 100 : 0,
+        ecpm: impressions && revenue > 0 ? (revenue / impressions) * 1000 : null
+      };
+    }).sort(function (a, b) {
+      return b.impressions - a.impressions || b.requests - a.requests;
+    });
+
+    if (!rows.length) {
+      els.partnerReportBody.innerHTML = '<tr><td colspan="5">Partner data will appear after the next live request.</td></tr>';
+      return;
+    }
+
+    els.partnerReportBody.innerHTML = rows.map(function (row) {
+      return "<tr>" +
+        "<td>" + escapeHtml(row.name) + "</td>" +
+        "<td>" + formatNumber(row.requests) + "</td>" +
+        "<td>" + formatNumber(row.impressions) + "</td>" +
+        "<td>" + row.fillRate.toFixed(1) + "%</td>" +
+        "<td>" + (row.ecpm === null ? "N/A" : "$" + row.ecpm.toFixed(2)) + "</td>" +
+        "</tr>";
+    }).join("");
   }
 
   function toggleAutoRefreshReport() {
@@ -745,4 +760,3 @@
     node.classList.add("show");
   }
 })();
-
