@@ -14,7 +14,6 @@ export async function onRequestPost(context) {
     }
 
     await store.put(configId, JSON.stringify(config));
-    cacheConfig(context, configId, config);
 
     return json({
       ok: true,
@@ -24,22 +23,6 @@ export async function onRequestPost(context) {
   } catch (error) {
     return json({ ok: false, error: error.message || "invalid_config" }, 400);
   }
-}
-
-function cacheConfig(context, configId, config) {
-  if (typeof caches === "undefined") return;
-  const url = new URL(context.request.url);
-  url.pathname = `${url.pathname.replace(/\/$/, "")}/${encodeURIComponent(configId)}`;
-  url.search = "";
-  const response = new Response(JSON.stringify(config), {
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "public, max-age=30, s-maxage=300, stale-while-revalidate=600",
-      "x-nexbanner-cache": "warm",
-      ...corsHeaders(),
-    },
-  });
-  context.waitUntil(caches.default.put(new Request(url.toString()), response));
 }
 
 function normalizeConfig(configId, body) {
@@ -71,6 +54,7 @@ function normalizeConfig(configId, body) {
     endpoint: endpointOf(item),
     floorCpm: item.floorCpm || "",
     timeoutMs: item.timeoutMs || "",
+    allowVpaid: item.allowVpaid !== false,
   })).filter((item) => item.endpoint);
   const displayScriptDemand = displayTags.map((item) => ({
     name: item.name || "",
@@ -164,7 +148,7 @@ function shortTag(configId, config) {
 function scriptForProduct(productVersion) {
   if (productVersion === "Version 2 Testing") return "https://nexbid.uk/nexbanner/version-2-testing/src/nexbanner-gam.js";
   if (productVersion === "NexSticky") return "https://nexbid.uk/nexsticky/final/src/nexsticky-gam.js";
-  return "https://nexbid.uk/nbx/v1.js?v=20260713-5";
+  return "https://nexbid.uk/nexbanner/final/src/nexbanner-gam.js";
 }
 
 function escapeAttr(value) {
@@ -211,4 +195,3 @@ function corsHeaders() {
 function trimSlash(value) {
   return String(value || "").replace(/\/+$/, "");
 }
-
