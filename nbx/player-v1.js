@@ -156,6 +156,18 @@
       function useVast(outcome) {
         if (!state.active || state.cycleId !== cycleId) return;
         if (outcome && outcome.ad) {
+          if (outcome.ad.adType === "vpaid-js") {
+            preloadVpaidScript(outcome.ad);
+            displayOutcome.then(function (prepared) {
+              if (!state.active || state.cycleId !== cycleId) return;
+              if (prepared && prepared.ad) {
+                renderPreparedDisplay(root, config, state, prepared, Promise.resolve(outcome), cycleId);
+              } else {
+                renderPreparedVideo(root, config, state, outcome.ad, Promise.resolve(prepared), cycleId);
+              }
+            });
+            return;
+          }
           renderPreparedVideo(root, config, state, outcome.ad, displayOutcome, cycleId);
         } else {
           displayOutcome.then(useDisplay);
@@ -243,7 +255,25 @@
     if (prepared.ad.adType === "adserver-sequence") {
       renderDisplay(root, config, prepared.ad, function () {
         if (!state.active || state.cycleId !== cycleId) return;
-        runRotationStep(root, config, state, prepared.nextIndex);
+        if (!pendingVastOutcome) {
+          runRotationStep(root, config, state, prepared.nextIndex);
+          return;
+        }
+        pendingVastOutcome.then(function (outcome) {
+          if (!state.active || state.cycleId !== cycleId) return;
+          if (outcome && outcome.ad) {
+            renderPreparedVideo(
+              root,
+              config,
+              state,
+              outcome.ad,
+              Promise.resolve({ ad: null, nextIndex: 4 }),
+              cycleId
+            );
+          } else {
+            runRotationStep(root, config, state, prepared.nextIndex);
+          }
+        });
       });
       return;
     }
@@ -1059,6 +1089,17 @@
       "var script=document.createElement('script');script.async=true;script.src=" + mediaUrlJson + ";script.onload=boot;script.onerror=function(){finish('error','vpaid-script-load-failed');};document.head.appendChild(script);",
       "})();<\/script></body></html>"
     ].join("");
+  }
+
+  function preloadVpaidScript(vast) {
+    if (!vast || !vast.mediaUrl || vast.__nbxVpaidPreloadStarted) return;
+    vast.__nbxVpaidPreloadStarted = true;
+    var link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "script";
+    link.href = vast.mediaUrl;
+    link.crossOrigin = "anonymous";
+    document.head.appendChild(link);
   }
 
   function warmVastMedia(vast, config) {
