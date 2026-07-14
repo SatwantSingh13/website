@@ -112,10 +112,8 @@
       return;
     }
 
-    var loaderUrl = new URL(currentScriptUrl, window.location.href);
-    var playerUrl = new URL("player-v1.js", loaderUrl);
-    var version = loaderUrl.searchParams.get("v") || "20260713-2";
-    playerUrl.searchParams.set("v", version);
+    var playerUrl = new URL("player-v1.js", currentScriptUrl);
+    playerUrl.searchParams.set("v", "20260714-1");
     var playerScript = document.createElement("script");
     playerScript.async = true;
     playerScript.src = playerUrl.toString();
@@ -148,4 +146,3 @@
     return String(value || "").replace(/\/+$/, "");
   }
 })();
-
