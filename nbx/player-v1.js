@@ -6,14 +6,15 @@
   function mount(target, config) {
     config.requestId = config.requestId || makeRequestId();
     config.__requestFilledTracked = false;
-    track(config, "ad_request", { layer: "gam-entry" });
     loadConfig(config)
       .then(function (resolvedConfig) {
+        track(resolvedConfig, "ad_request", { layer: "gam-entry" });
         preconnectDemand(resolvedConfig);
         var root = buildShell(target, resolvedConfig);
         startViewableRotation(root, resolvedConfig);
       })
       .catch(function () {
+        track(config, "ad_request", { layer: "gam-entry" });
         preconnectDemand(config);
         var root = buildShell(target, config);
         track(config, "config_error", { layer: "config" });
