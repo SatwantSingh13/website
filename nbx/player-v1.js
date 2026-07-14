@@ -608,7 +608,7 @@
 
     if (config.displayScriptUrl) scripts.unshift({ endpoint: config.displayScriptUrl, floorCpm: 0 });
 
-    var candidates = htmlTags.map(function (item) {
+    var htmlCandidates = htmlTags.map(function (item) {
       return {
         adType: "adserver-html",
         html: decodePayload(item.html),
@@ -618,7 +618,10 @@
         cpm: numberValue(item.floorCpm, 0),
         timeoutMs: numberValue(item.timeoutMs, config.timeoutMs)
       };
-    }).concat(scripts.map(function (item) {
+    }).sort(function (a, b) {
+      return Number(a.html.indexOf("googletag") >= 0) - Number(b.html.indexOf("googletag") >= 0);
+    });
+    var scriptCandidates = scripts.map(function (item) {
       return {
         adType: "display-js",
         scriptUrl: item.endpoint || item,
@@ -628,7 +631,8 @@
         cpm: numberValue(item.floorCpm, 0),
         timeoutMs: numberValue(item.timeoutMs, config.timeoutMs)
       };
-    }));
+    });
+    var candidates = scriptCandidates.concat(htmlCandidates);
 
     if (!candidates.length) return Promise.reject(new Error("missing-adserver-tags"));
 
