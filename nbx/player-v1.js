@@ -1331,7 +1331,17 @@
     url.searchParams.set("w", config.width);
     url.searchParams.set("h", config.height);
     url.searchParams.set("cb", String(Date.now()) + Math.floor(Math.random() * 100000));
-    pixel(url.toString());
+    sendTrackingEvent(url.toString());
+  }
+
+  function sendTrackingEvent(url) {
+    if (!url) return;
+    if (window.fetch) {
+      fetch(url, { method: "GET", credentials: "omit", keepalive: true })
+        .catch(function () { pixel(url); });
+      return;
+    }
+    pixel(url);
   }
 
   function recordDeliveredImpression(config, layer, partnerName, cpm) {
@@ -1357,6 +1367,14 @@
   function pixel(url) {
     if (!url) return;
     var image = new Image();
+    var pending = window.__nbxTrackingPixels = window.__nbxTrackingPixels || [];
+    pending.push(image);
+    function release() {
+      var index = pending.indexOf(image);
+      if (index >= 0) pending.splice(index, 1);
+    }
+    image.onload = release;
+    image.onerror = release;
     image.src = expandMacros(url, {});
   }
 
