@@ -35,17 +35,18 @@ export async function onRequestGet(context) {
 async function exactMetrics(store, date, configId) {
   if (!store.list) return { enabled: false };
   const prefix = `exact:${date}:${encodeURIComponent(configId)}:`;
-  const [requests, filled, deliveries, partnerRequests] = await Promise.all([
+  const [requests, filled, deliveries, partnerRequests, diagnostics] = await Promise.all([
     listAll(store, `${prefix}request:`),
     listAll(store, `${prefix}filled:`),
     listAll(store, `${prefix}delivery:`),
     listAll(store, `${prefix}partner-request:`),
+    listAll(store, `${prefix}diagnostic:`),
   ]);
   const partners = {};
   let impressionRevenue = 0;
   let exactSince = "";
 
-  requests.concat(filled, deliveries, partnerRequests).forEach((item) => {
+  requests.concat(filled, deliveries, partnerRequests, diagnostics).forEach((item) => {
     const metadata = item.metadata || {};
     if (metadata.ts && (!exactSince || metadata.ts < exactSince)) exactSince = metadata.ts;
   });
@@ -64,6 +65,15 @@ async function exactMetrics(store, date, configId) {
     partners[partnerName] = partners[partnerName] || { requests: 0, impressions: 0, noFill: 0, errors: 0, cpmTotal: 0, revenueEstimate: 0 };
     partners[partnerName].requests += 1;
   });
+  const failureReasons = {};
+  diagnostics.forEach((item) => {
+    const metadata = item.metadata || {};
+    const partnerName = metadata.partnerName || "Unknown";
+    const eventName = metadata.event || "failure";
+    const reason = metadata.reason || "unspecified";
+    const key = `${partnerName} | ${eventName} | ${reason}`;
+    failureReasons[key] = (failureReasons[key] || 0) + 1;
+  });
 
   return {
     enabled: true,
@@ -75,6 +85,7 @@ async function exactMetrics(store, date, configId) {
     fillRate: requests.length ? (filled.length / requests.length) * 100 : 0,
     ecpm: deliveries.length && impressionRevenue > 0 ? (impressionRevenue / deliveries.length) * 1000 : null,
     partners,
+    failureReasons,
   };
 }
 
