@@ -586,11 +586,12 @@
   }
 
   function renderReport(summary) {
-    var adRequests = numberOr(summary.adRequests, 0);
-    var measuredRequests = numberOr(summary.measuredRequests, 0);
-    var filledRequests = numberOr(summary.filledRequests, 0);
-    var impressions = numberOr(summary.impressions, 0);
-    var impressionRevenue = numberOr(summary.impressionRevenue, 0);
+    var exact = summary.exact && summary.exact.enabled ? summary.exact : null;
+    var adRequests = exact ? numberOr(exact.adRequests, 0) : numberOr(summary.adRequests, 0);
+    var measuredRequests = exact ? adRequests : numberOr(summary.measuredRequests, 0);
+    var filledRequests = exact ? numberOr(exact.filledRequests, 0) : numberOr(summary.filledRequests, 0);
+    var impressions = exact ? numberOr(exact.impressions, 0) : numberOr(summary.impressions, 0);
+    var impressionRevenue = exact ? numberOr(exact.impressionRevenue, 0) : numberOr(summary.impressionRevenue, 0);
     var fillRate = measuredRequests ? Math.round((filledRequests / measuredRequests) * 1000) / 10 : null;
     var ecpm = impressions && impressionRevenue > 0 ? (impressionRevenue / impressions) * 1000 : null;
 
@@ -598,10 +599,12 @@
     els.metricFilledRequests.textContent = formatNumber(filledRequests);
     els.metricFillRate.textContent = fillRate === null ? "Waiting" : fillRate + "%";
     els.metricEcpm.textContent = ecpm === null ? "N/A" : "$" + ecpm.toFixed(2);
-    els.reportTrackingNote.textContent = measuredRequests
+    els.reportTrackingNote.textContent = exact
+      ? "Exact immutable request accounting is active" + (exact.exactSince ? " from " + new Date(exact.exactSince).toLocaleString() : " and will start with the next request") + ". Earlier totals remain available in the raw report."
+      : measuredRequests
       ? "Fill rate uses " + formatNumber(measuredRequests) + " fully measured request(s) received after partner tracking went live."
       : "Partner, fill-rate and eCPM measurement starts with the next live request. Earlier ad requests remain in the total only.";
-    renderPartnerReport(summary.partners || {});
+    renderPartnerReport(exact && exact.adRequests ? exact.partners : (summary.partners || {}));
   }
 
   function renderPartnerReport(partners) {
