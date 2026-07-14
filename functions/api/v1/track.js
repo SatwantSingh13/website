@@ -82,9 +82,13 @@ async function incrementSummary(store, key, event) {
     summary.partners[partnerName] = summary.partners[partnerName] || {
       requests: 0,
       impressions: 0,
+      noFill: 0,
+      errors: 0,
       cpmTotal: 0,
       revenueEstimate: 0,
     };
+    if (summary.partners[partnerName].noFill === undefined) summary.partners[partnerName].noFill = 0;
+    if (summary.partners[partnerName].errors === undefined) summary.partners[partnerName].errors = 0;
   }
   if (event.productVersion) summary.versions[event.productVersion] = (summary.versions[event.productVersion] || 0) + 1;
 
@@ -112,10 +116,12 @@ async function incrementSummary(store, key, event) {
   if (event.event.indexOf("no_fill") >= 0 || event.event === "no_ad") {
     summary.noFill += 1;
     summary.layers[layer].noFill += 1;
+    if (partnerName) summary.partners[partnerName].noFill += 1;
   }
   if (event.event.indexOf("error") >= 0 || event.event.indexOf("failed") >= 0) {
     summary.errors += 1;
     summary.layers[layer].errors += 1;
+    if (partnerName) summary.partners[partnerName].errors += 1;
   }
   if (event.event === "rotation_cycle_complete") summary.cycles += 1;
   if (event.event.indexOf("request") >= 0 || event.event === "viewable_start") summary.layers[layer].requests += 1;
