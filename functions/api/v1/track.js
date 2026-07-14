@@ -14,6 +14,8 @@ export async function onRequestGet(context) {
     publisherDomain: url.searchParams.get("publisher_domain") || "",
     placementId: url.searchParams.get("placement_id") || "",
     layer: url.searchParams.get("layer") || "",
+    requestId: url.searchParams.get("request_id") || "",
+    partnerName: url.searchParams.get("partner_name") || "",
     cpm: url.searchParams.get("cpm") || "",
     reason: url.searchParams.get("reason") || "",
   };
@@ -54,6 +56,7 @@ async function incrementSummary(store, key, event) {
   const summary = current || {
     key,
     adRequests: 0,
+    filledRequests: 0,
     viewableRequests: 0,
     deliveredAds: 0,
     impressions: 0,
@@ -63,17 +66,33 @@ async function incrementSummary(store, key, event) {
     cycles: 0,
     cpmTotal: 0,
     revenueEstimate: 0,
+    impressionRevenue: 0,
     layers: {},
+    partners: {},
     versions: {},
     updatedAt: "",
   };
 
   const layer = event.layer || "unknown";
+  const partnerName = event.partnerName || "";
   summary.layers[layer] = summary.layers[layer] || { requests: 0, fills: 0, impressions: 0, noFill: 0, errors: 0, cpmTotal: 0 };
+  summary.partners = summary.partners || {};
+  if (partnerName) {
+    summary.partners[partnerName] = summary.partners[partnerName] || {
+      requests: 0,
+      impressions: 0,
+      cpmTotal: 0,
+      revenueEstimate: 0,
+    };
+  }
   if (event.productVersion) summary.versions[event.productVersion] = (summary.versions[event.productVersion] || 0) + 1;
 
   if (summary.adRequests === undefined) summary.adRequests = 0;
+  if (summary.filledRequests === undefined) summary.filledRequests = 0;
+  if (summary.impressionRevenue === undefined) summary.impressionRevenue = 0;
   if (event.event === "ad_request") summary.adRequests += 1;
+  if (event.event === "request_filled") summary.filledRequests += 1;
+  if (event.event === "partner_request" && partnerName) summary.partners[partnerName].requests += 1;
   if (event.event === "viewable_start") summary.viewableRequests += 1;
   if (event.event === "rotation_layer_filled" || event.event === "realtime_winner") {
     summary.deliveredAds += 1;
@@ -82,6 +101,7 @@ async function incrementSummary(store, key, event) {
   if (event.event === "impression") {
     summary.impressions += 1;
     summary.layers[layer].impressions += 1;
+    if (partnerName) summary.partners[partnerName].impressions += 1;
   }
   if (event.event === "click") summary.clicks += 1;
   if (event.event.indexOf("no_fill") >= 0 || event.event === "no_ad") {
@@ -102,6 +122,11 @@ async function incrementSummary(store, key, event) {
     if (event.event === "impression" || event.event === "rotation_layer_filled") {
       summary.revenueEstimate += cpm / 1000;
     }
+    if (event.event === "impression") summary.impressionRevenue += cpm / 1000;
+    if (event.event === "impression" && partnerName) {
+      summary.partners[partnerName].cpmTotal += cpm;
+      summary.partners[partnerName].revenueEstimate += cpm / 1000;
+    }
   }
 
   summary.updatedAt = event.ts;
@@ -115,4 +140,3 @@ function corsHeaders() {
     "access-control-allow-headers": "content-type",
   };
 }
-
