@@ -284,6 +284,12 @@ button.secondary,
   font-weight: 700;
 }
 
+.report-note {
+  margin: -4px 0 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .partner-report {
   margin: 20px 0 14px;
 }
