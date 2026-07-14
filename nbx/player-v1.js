@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   "use strict";
 
   window.NexBannerPlayer = { mount: mount };
@@ -719,7 +719,11 @@
           return ad;
         })
         .catch(function (error) {
-          track(config, layer + "_endpoint_failed", { layer: layer, reason: error.message });
+          track(config, layer + "_endpoint_failed", {
+            layer: layer,
+            partnerName: partnerName,
+            reason: error.message
+          });
           return null;
         });
     });
@@ -1242,7 +1246,8 @@
       "var done=false,start=Date.now(),expectsGpt=" + (expectsGpt ? "true" : "false") + ";",
       "function finish(filled,reason){if(done)return;done=true;parent.postMessage({type:'nexbanner-frame-result',token:" + tokenJson + ",filled:!!filled,reason:reason||''},'*');}",
       "if(expectsGpt){window.googletag=window.googletag||{cmd:[]};window.googletag.cmd.push(function(){window.googletag.pubads().addEventListener('slotRenderEnded',function(e){finish(!e.isEmpty,e.isEmpty?'gpt-empty':'');});});}",
-      "var poll=setInterval(function(){if(done){clearInterval(poll);return;}if(!expectsGpt&&Date.now()-start>350){var n=document.querySelectorAll('iframe,img,video,canvas,object,embed');for(var i=0;i<n.length;i++){var r=n[i].getBoundingClientRect();if(r.width>10&&r.height>10){finish(true,'');break;}}}},250);",
+      "function visibleCreative(){var n=document.body.querySelectorAll('*');for(var i=0;i<n.length;i++){var e=n[i],tag=e.tagName;if(tag==='SCRIPT'||tag==='STYLE'||tag==='LINK'||tag==='META')continue;var r=e.getBoundingClientRect(),s=getComputedStyle(e);if(r.width<=10||r.height<=10||s.display==='none'||s.visibility==='hidden'||Number(s.opacity)===0)continue;if(/^(IFRAME|IMG|VIDEO|CANVAS|OBJECT|EMBED)$/.test(tag)||s.backgroundImage!=='none'||String(e.textContent||'').trim())return true;}return false;}",
+      "var poll=setInterval(function(){if(done){clearInterval(poll);return;}if(!expectsGpt&&Date.now()-start>350&&visibleCreative())finish(true,'');},250);",
       "setTimeout(function(){clearInterval(poll);finish(false,expectsGpt?'gpt-timeout':'creative-timeout');}," + timeout + ");",
       "})();<\\/script>"
     ].join("");
