@@ -74,6 +74,7 @@
     metricFilledRequests: document.getElementById("metricFilledRequests"),
     metricFillRate: document.getElementById("metricFillRate"),
     metricEcpm: document.getElementById("metricEcpm"),
+    reportTrackingNote: document.getElementById("reportTrackingNote"),
     partnerReportBody: document.getElementById("partnerReportBody"),
     reportOutput: document.getElementById("reportOutput"),
     exportConfig: document.getElementById("exportConfig")
@@ -586,16 +587,20 @@
 
   function renderReport(summary) {
     var adRequests = numberOr(summary.adRequests, 0);
+    var measuredRequests = numberOr(summary.measuredRequests, 0);
     var filledRequests = numberOr(summary.filledRequests, 0);
     var impressions = numberOr(summary.impressions, 0);
     var impressionRevenue = numberOr(summary.impressionRevenue, 0);
-    var fillRate = adRequests ? Math.round((filledRequests / adRequests) * 1000) / 10 : 0;
+    var fillRate = measuredRequests ? Math.round((filledRequests / measuredRequests) * 1000) / 10 : null;
     var ecpm = impressions && impressionRevenue > 0 ? (impressionRevenue / impressions) * 1000 : null;
 
     els.metricAdRequests.textContent = formatNumber(adRequests);
     els.metricFilledRequests.textContent = formatNumber(filledRequests);
-    els.metricFillRate.textContent = fillRate + "%";
+    els.metricFillRate.textContent = fillRate === null ? "Waiting" : fillRate + "%";
     els.metricEcpm.textContent = ecpm === null ? "N/A" : "$" + ecpm.toFixed(2);
+    els.reportTrackingNote.textContent = measuredRequests
+      ? "Fill rate uses " + formatNumber(measuredRequests) + " fully measured request(s) received after partner tracking went live."
+      : "Partner, fill-rate and eCPM measurement starts with the next live request. Earlier ad requests remain in the total only.";
     renderPartnerReport(summary.partners || {});
   }
 
