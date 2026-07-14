@@ -609,11 +609,13 @@
       var partner = partners[name] || {};
       var requests = numberOr(partner.requests, 0);
       var impressions = numberOr(partner.impressions, 0);
+      var noFill = numberOr(partner.noFill, 0) + numberOr(partner.errors, 0);
       var revenue = numberOr(partner.revenueEstimate, 0);
       return {
         name: name,
         requests: requests,
         impressions: impressions,
+        noFill: noFill,
         fillRate: requests ? (impressions / requests) * 100 : 0,
         ecpm: impressions && revenue > 0 ? (revenue / impressions) * 1000 : null
       };
@@ -622,7 +624,7 @@
     });
 
     if (!rows.length) {
-      els.partnerReportBody.innerHTML = '<tr><td colspan="5">Partner data will appear after the next live request.</td></tr>';
+      els.partnerReportBody.innerHTML = '<tr><td colspan="6">Partner data will appear after the next live request.</td></tr>';
       return;
     }
 
@@ -631,6 +633,7 @@
         "<td>" + escapeHtml(row.name) + "</td>" +
         "<td>" + formatNumber(row.requests) + "</td>" +
         "<td>" + formatNumber(row.impressions) + "</td>" +
+        "<td>" + formatNumber(row.noFill) + "</td>" +
         "<td>" + row.fillRate.toFixed(1) + "%</td>" +
         "<td>" + (row.ecpm === null ? "N/A" : "$" + row.ecpm.toFixed(2)) + "</td>" +
         "</tr>";
