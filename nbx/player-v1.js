@@ -478,7 +478,11 @@
           };
         })
         .catch(function (error) {
-          track(config, "vast_tag_failed", { layer: "premium-vast", reason: error.message });
+          track(config, "vast_tag_failed", {
+            layer: "premium-vast",
+            partnerName: vastItem.name || "VAST",
+            reason: error.message
+          });
           return null;
         });
     })).then(function (results) {
@@ -507,11 +511,12 @@
         var xml = new DOMParser().parseFromString(xmlText, "text/xml");
         if (xml.querySelector("parsererror")) throw new Error("vast-parse-error");
 
-        var media = firstText(xml, "MediaFile");
-        if (!media) throw new Error("vast-no-media");
+        var media = supportedVastMedia(xml);
+        if (!media) throw new Error("vast-no-supported-video-media");
 
         return {
-          mediaUrl: resolveUrl(media, vastUrl),
+          mediaUrl: resolveUrl(media.url, vastUrl),
+          mediaType: media.type,
           clickUrl: firstText(xml, "ClickThrough") || config.clickUrl,
           impressionUrl: firstText(xml, "Impression"),
           tracking: trackingEvents(xml),
@@ -565,7 +570,8 @@
         html: decodePayload(item.html),
         layer: "adserver-html-tag",
         sourceName: item.name || "MI HTML",
-        cpm: numberValue(item.floorCpm, 0)
+        cpm: numberValue(item.floorCpm, 0),
+        timeoutMs: numberValue(item.timeoutMs, config.timeoutMs)
       };
     }).concat(scripts.map(function (item) {
       return {
@@ -573,7 +579,8 @@
         scriptUrl: item.endpoint || item,
         layer: "adserver-js-tag",
         sourceName: item.name || "Display JS",
-        cpm: numberValue(item.floorCpm, 0)
+        cpm: numberValue(item.floorCpm, 0),
+        timeoutMs: numberValue(item.timeoutMs, config.timeoutMs)
       };
     }));
 
@@ -773,13 +780,6 @@
   function renderDisplay(root, config, ad) {
     clear(root);
     markRenderStart(root);
-    recordDeliveredImpression(
-      config,
-      ad.layer || "display",
-      ad.sourceName || ad.layer || "Display",
-      ad.cpm || ad.nbxRankCpm || ""
-    );
-    pixel(ad.impressionUrl);
 
     if (ad.html) {
       var frame = document.createElement("iframe");
@@ -790,6 +790,7 @@
       frame.setAttribute("frameborder", "0");
       frame.className = "nbx-frame";
       root.appendChild(frame);
+      watchAdFrame(root, frame, config, ad);
       var html = [
         "<!doctype html>",
         "<html><head><meta charset=\"utf-8\">",
@@ -799,6 +800,7 @@
         "#gpt-passback{margin:0!important;padding:0!important;width:" + config.width + "px;height:" + config.height + "px;overflow:hidden}",
         "iframe{display:block;margin:0;border:0;max-width:100%}",
         "</style></head><body>",
+        frameMonitorScript(frame.__nbxMonitorToken, ad.html.indexOf("googletag") >= 0, ad.timeoutMs || config.timeoutMs),
         ad.html,
         "</body></html>"
       ].join("");
@@ -826,6 +828,15 @@
     image.height = config.height;
     image.alt = "Advertisement";
     image.className = "nbx-image";
+    image.onload = function () {
+      recordDeliveredImpression(
+        config,
+        ad.layer || "display",
+        ad.sourceName || ad.layer || "Display",
+        ad.cpm || ad.nbxRankCpm || ""
+      );
+      pixel(ad.impressionUrl);
+    };
     image.onerror = function () {
       track(config, "display_error", { layer: ad.layer || "display" });
       advanceRotation(root, "display_error");
@@ -845,6 +856,7 @@
     frame.setAttribute("frameborder", "0");
     frame.className = "nbx-frame";
     root.appendChild(frame);
+    watchAdFrame(root, frame, config, ad);
 
     var safeScriptUrl = escapeAttribute(expandMacros(ad.scriptUrl, config, ad.timeoutMs || config.timeoutMs));
     var html = [
@@ -852,6 +864,7 @@
       "<html><head><meta charset=\"utf-8\">",
       "<style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent}</style>",
       "</head><body>",
+      frameMonitorScript(frame.__nbxMonitorToken, false, ad.timeoutMs || config.timeoutMs),
       "<script src=\"" + safeScriptUrl + "\"><\\/script>",
       "</body></html>"
     ].join("");
@@ -962,7 +975,76 @@
   }
 
   function clear(root) {
+    if (typeof root.__nbxFrameCleanup === "function") root.__nbxFrameCleanup();
+    root.__nbxFrameCleanup = null;
     while (root.firstChild) root.removeChild(root.firstChild);
+  }
+
+  function watchAdFrame(root, frame, config, ad) {
+    var token = makeRequestId();
+    var completed = false;
+    frame.__nbxMonitorToken = token;
+
+    function cleanup() {
+      window.removeEventListener("message", onMessage);
+      if (root.__nbxFrameCleanup === cleanup) root.__nbxFrameCleanup = null;
+    }
+
+    function onMessage(event) {
+      var data = event.data || {};
+      if (completed || event.source !== frame.contentWindow) return;
+      if (data.type !== "nexbanner-frame-result" || data.token !== token) return;
+      completed = true;
+      cleanup();
+
+      if (data.filled) {
+        recordDeliveredImpression(
+          config,
+          ad.layer || "display",
+          ad.sourceName || ad.layer || "Display",
+          ad.cpm || ad.nbxRankCpm || ""
+        );
+        pixel(ad.impressionUrl);
+        return;
+      }
+
+      track(config, "partner_no_fill", {
+        layer: ad.layer || "display",
+        partnerName: ad.sourceName || ad.layer || "Display",
+        reason: data.reason || "partner-empty"
+      });
+      advanceRotation(root, data.reason || "partner_no_fill");
+    }
+
+    window.addEventListener("message", onMessage);
+    root.__nbxFrameCleanup = cleanup;
+  }
+
+  function frameMonitorScript(token, expectsGpt, timeoutMs) {
+    var timeout = Math.max(2500, Math.min(8000, numberValue(timeoutMs, 4000) + 1200));
+    var tokenJson = JSON.stringify(token);
+    return [
+      "<script>(function(){",
+      "var done=false,start=Date.now(),expectsGpt=" + (expectsGpt ? "true" : "false") + ";",
+      "function finish(filled,reason){if(done)return;done=true;parent.postMessage({type:'nexbanner-frame-result',token:" + tokenJson + ",filled:!!filled,reason:reason||''},'*');}",
+      "if(expectsGpt){window.googletag=window.googletag||{cmd:[]};window.googletag.cmd.push(function(){window.googletag.pubads().addEventListener('slotRenderEnded',function(e){finish(!e.isEmpty,e.isEmpty?'gpt-empty':'');});});}",
+      "var poll=setInterval(function(){if(done){clearInterval(poll);return;}if(!expectsGpt&&Date.now()-start>350){var n=document.querySelectorAll('iframe,img,video,canvas,object,embed');for(var i=0;i<n.length;i++){var r=n[i].getBoundingClientRect();if(r.width>10&&r.height>10){finish(true,'');break;}}}},250);",
+      "setTimeout(function(){clearInterval(poll);finish(false,expectsGpt?'gpt-timeout':'creative-timeout');}," + timeout + ");",
+      "})();<\\/script>"
+    ].join("");
+  }
+
+  function supportedVastMedia(xml) {
+    var nodes = xml.querySelectorAll("MediaFile");
+    for (var index = 0; index < nodes.length; index += 1) {
+      var node = nodes[index];
+      var type = String(node.getAttribute("type") || "").toLowerCase();
+      var apiFramework = String(node.getAttribute("apiFramework") || "").toLowerCase();
+      var url = String(node.textContent || "").trim();
+      var isVideo = type.indexOf("video/") === 0 || type.indexOf("mpegurl") >= 0;
+      if (url && isVideo && apiFramework !== "vpaid") return { url: url, type: type };
+    }
+    return null;
   }
 
   function withTimeout(promise, timeoutMs) {
