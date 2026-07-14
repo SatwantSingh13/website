@@ -272,23 +272,23 @@
       <section class="panel output-panel">
         <div class="section-title">
           <p>Testing Reports</p>
-          <h2>Realtime KV Counters</h2>
+          <h2>Realtime Exact Reporting</h2>
         </div>
 
         <div class="form-grid">
           <label>
             Report Scope
             <select id="reportScope">
-              <option value="all">All Traffic Today</option>
+              <option value="all">All Traffic Today (legacy)</option>
               <option value="publisher">Current Publisher ID</option>
               <option value="domain">Current Publisher Domain</option>
               <option value="placement">Current Publisher + Placement</option>
-              <option value="config">Config ID</option>
+              <option value="config" selected>Config ID (exact)</option>
             </select>
           </label>
           <label>
             Config ID
-            <input id="reportConfigId" placeholder="Optional config ID">
+            <input id="reportConfigId" value="moneycontrol.com" placeholder="Config ID">
           </label>
         </div>
 
@@ -345,7 +345,7 @@
     </main>
 
     <script src="./dashboard-auth.js?v=login-1"></script>
-    <script src="./app.js?v=partner-report-2"></script>
+    <script src="./app.js?v=exact-report-1"></script>
   </body>
 </html>
 
