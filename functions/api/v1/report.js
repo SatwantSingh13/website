@@ -34,6 +34,7 @@ function emptySummary(key) {
   return {
     key,
     adRequests: 0,
+    measuredRequests: 0,
     filledRequests: 0,
     viewableRequests: 0,
     deliveredAds: 0,
