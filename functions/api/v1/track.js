@@ -23,14 +23,45 @@ export async function onRequestGet(context) {
   const store = eventStore(context.env);
   if (store && store.put) {
     const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    await store.put(key, JSON.stringify(event), { expirationTtl: 60 * 60 * 24 * 30 });
-    await updateCounters(store, event);
+    await Promise.all([
+      store.put(key, JSON.stringify(event), { expirationTtl: 60 * 60 * 24 * 30 }),
+      writeExactMarkers(store, event),
+      updateCounters(store, event),
+    ]);
   }
 
   const pixel = Uint8Array.from([71,73,70,56,57,97,1,0,1,0,128,0,0,255,255,255,0,0,0,33,249,4,1,0,0,0,0,44,0,0,0,0,1,0,1,0,0,2,2,68,1,0,59]);
   return new Response(pixel, {
     headers: { "content-type": "image/gif", "cache-control": "no-store", ...corsHeaders() },
   });
+}
+
+async function writeExactMarkers(store, event) {
+  if (!event.configId || !event.requestId) return;
+  const date = event.ts.slice(0, 10);
+  const scope = encodeURIComponent(event.configId);
+  const request = encodeURIComponent(event.requestId);
+  const options = {
+    expirationTtl: 60 * 60 * 24 * 30,
+    metadata: {
+      ts: event.ts,
+      partnerName: event.partnerName || "",
+      layer: event.layer || "",
+      cpm: Number(event.cpm || 0) || 0,
+    },
+  };
+
+  if (event.event === "ad_request") {
+    await store.put(`exact:${date}:${scope}:request:${request}`, "1", options);
+  } else if (event.event === "request_filled") {
+    await store.put(`exact:${date}:${scope}:filled:${request}`, "1", options);
+  } else if (event.event === "impression") {
+    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await store.put(`exact:${date}:${scope}:delivery:${suffix}`, "1", options);
+  } else if (event.event === "partner_request" && event.partnerName) {
+    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await store.put(`exact:${date}:${scope}:partner-request:${suffix}`, "1", options);
+  }
 }
 
 function eventStore(env) {
