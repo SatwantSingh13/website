@@ -240,6 +240,14 @@
     if (!state.active || state.cycleId !== cycleId) return;
     state.currentLayer = prepared.name;
     state.nextIndex = prepared.layerIndex;
+    if (prepared.ad.adType === "adserver-sequence") {
+      renderDisplay(root, config, prepared.ad, function () {
+        if (!state.active || state.cycleId !== cycleId) return;
+        runRotationStep(root, config, state, prepared.nextIndex);
+      });
+      return;
+    }
+
     renderDisplay(root, config, prepared.ad);
     track(config, "rotation_layer_filled", {
       layer: prepared.name,
@@ -297,8 +305,8 @@
         status: "Running GAM / MI / JS layer",
         noFill: "adserver_no_fill",
         fetch: function () { return fetchAdserverDecision(config); },
-        render: function (ad) { renderDisplay(root, config, ad); },
-        holdMs: Math.max(30000, numberValue(config.adserverHoldMs, 30000))
+        render: function (ad, done) { renderDisplay(root, config, ad, done); },
+        waitForDone: true
       },
       {
         name: "ortb",
@@ -338,7 +346,9 @@
             runRotationStep(root, config, state, index + 1);
           });
         });
-        track(config, "rotation_layer_filled", { layer: layer.name, cpm: ad.cpm || ad.nbxRankCpm || "" });
+        if (ad.adType !== "adserver-sequence") {
+          track(config, "rotation_layer_filled", { layer: layer.name, cpm: ad.cpm || ad.nbxRankCpm || "" });
+        }
         if (layer.waitForDone) return;
         state.timer = window.setTimeout(function () {
           runRotationStep(root, config, state, index + 1);
@@ -568,6 +578,7 @@
       return {
         adType: "adserver-html",
         html: decodePayload(item.html),
+        demandKey: "html:" + decodePayload(item.html),
         layer: "adserver-html-tag",
         sourceName: item.name || "MI HTML",
         cpm: numberValue(item.floorCpm, 0),
@@ -577,6 +588,7 @@
       return {
         adType: "display-js",
         scriptUrl: item.endpoint || item,
+        demandKey: "script:" + (item.endpoint || item),
         layer: "adserver-js-tag",
         sourceName: item.name || "Display JS",
         cpm: numberValue(item.floorCpm, 0),
@@ -586,14 +598,12 @@
 
     if (!candidates.length) return Promise.reject(new Error("missing-adserver-tags"));
 
-    var cursor = numberValue(config.__adserverCursor, 0);
-    config.__adserverCursor = cursor + 1;
-    var selected = candidates[cursor % candidates.length];
-    track(config, "partner_request", {
+    candidates = uniqueDemand(candidates, "demandKey");
+    return Promise.resolve({
+      adType: "adserver-sequence",
       layer: "adserver",
-      partnerName: selected.sourceName
+      candidates: candidates
     });
-    return Promise.resolve(selected);
   }
 
   function tryScriptTags(scripts, index) {
@@ -777,7 +787,12 @@
     }
   }
 
-  function renderDisplay(root, config, ad) {
+  function renderDisplay(root, config, ad, onResult) {
+    if (ad.adType === "adserver-sequence") {
+      renderAdserverSequence(root, config, ad.candidates || [], onResult);
+      return;
+    }
+
     clear(root);
     markRenderStart(root);
 
@@ -790,7 +805,7 @@
       frame.setAttribute("frameborder", "0");
       frame.className = "nbx-frame";
       root.appendChild(frame);
-      watchAdFrame(root, frame, config, ad);
+      watchAdFrame(root, frame, config, ad, onResult);
       var html = [
         "<!doctype html>",
         "<html><head><meta charset=\"utf-8\">",
@@ -812,7 +827,7 @@
     }
 
     if (ad.scriptUrl) {
-      renderDisplayScript(root, config, ad);
+      renderDisplayScript(root, config, ad, onResult);
       return;
     }
 
@@ -836,10 +851,12 @@
         ad.cpm || ad.nbxRankCpm || ""
       );
       pixel(ad.impressionUrl);
+      if (typeof onResult === "function") onResult({ filled: true, partnerName: ad.sourceName });
     };
     image.onerror = function () {
       track(config, "display_error", { layer: ad.layer || "display" });
-      advanceRotation(root, "display_error");
+      if (typeof onResult === "function") onResult({ filled: false, partnerName: ad.sourceName, reason: "display_error" });
+      else advanceRotation(root, "display_error");
     };
 
     link.appendChild(image);
@@ -847,7 +864,7 @@
     root.appendChild(brandBadge(config));
   }
 
-  function renderDisplayScript(root, config, ad) {
+  function renderDisplayScript(root, config, ad, onResult) {
     var frame = document.createElement("iframe");
     frame.title = "NexBanner display tag";
     frame.width = config.width;
@@ -856,7 +873,7 @@
     frame.setAttribute("frameborder", "0");
     frame.className = "nbx-frame";
     root.appendChild(frame);
-    watchAdFrame(root, frame, config, ad);
+    watchAdFrame(root, frame, config, ad, onResult);
 
     var safeScriptUrl = escapeAttribute(expandMacros(ad.scriptUrl, config, ad.timeoutMs || config.timeoutMs));
     var html = [
@@ -975,12 +992,14 @@
   }
 
   function clear(root) {
+    if (root.__nbxSequenceTimer) window.clearTimeout(root.__nbxSequenceTimer);
+    root.__nbxSequenceTimer = null;
     if (typeof root.__nbxFrameCleanup === "function") root.__nbxFrameCleanup();
     root.__nbxFrameCleanup = null;
     while (root.firstChild) root.removeChild(root.firstChild);
   }
 
-  function watchAdFrame(root, frame, config, ad) {
+  function watchAdFrame(root, frame, config, ad, onResult) {
     var token = makeRequestId();
     var completed = false;
     frame.__nbxMonitorToken = token;
@@ -1005,6 +1024,7 @@
           ad.cpm || ad.nbxRankCpm || ""
         );
         pixel(ad.impressionUrl);
+        if (typeof onResult === "function") onResult({ filled: true, partnerName: ad.sourceName });
         return;
       }
 
@@ -1013,11 +1033,53 @@
         partnerName: ad.sourceName || ad.layer || "Display",
         reason: data.reason || "partner-empty"
       });
-      advanceRotation(root, data.reason || "partner_no_fill");
+      if (typeof onResult === "function") {
+        onResult({ filled: false, partnerName: ad.sourceName, reason: data.reason || "partner_no_fill" });
+      } else {
+        advanceRotation(root, data.reason || "partner_no_fill");
+      }
     }
 
     window.addEventListener("message", onMessage);
     root.__nbxFrameCleanup = cleanup;
+  }
+
+  function renderAdserverSequence(root, config, candidates, onDone) {
+    var queue = arrayFrom(candidates);
+    var index = 0;
+    var holdMs = Math.max(5000, numberValue(config.minRenderMs, 5000));
+
+    function finish() {
+      if (typeof onDone === "function") onDone({ filled: false, complete: true });
+    }
+
+    function next() {
+      if (index >= queue.length) {
+        finish();
+        return;
+      }
+
+      var candidate = queue[index];
+      index += 1;
+      track(config, "partner_request", {
+        layer: "adserver",
+        partnerName: candidate.sourceName || "MI"
+      });
+
+      renderDisplay(root, config, candidate, function (result) {
+        if (result && result.filled) {
+          root.__nbxSequenceTimer = window.setTimeout(next, holdMs);
+          return;
+        }
+        next();
+      });
+    }
+
+    if (!queue.length) {
+      finish();
+      return;
+    }
+    next();
   }
 
   function frameMonitorScript(token, expectsGpt, timeoutMs) {
