@@ -34,6 +34,7 @@ function emptySummary(key) {
   return {
     key,
     adRequests: 0,
+    filledRequests: 0,
     viewableRequests: 0,
     deliveredAds: 0,
     impressions: 0,
@@ -43,7 +44,9 @@ function emptySummary(key) {
     cycles: 0,
     cpmTotal: 0,
     revenueEstimate: 0,
+    impressionRevenue: 0,
     layers: {},
+    partners: {},
     versions: {},
     updatedAt: "",
   };
@@ -63,4 +66,3 @@ function corsHeaders() {
     "access-control-allow-headers": "content-type",
   };
 }
-
