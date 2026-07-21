@@ -8,18 +8,66 @@
     config.__requestFilledTracked = false;
     loadConfig(config)
       .then(function (resolvedConfig) {
-        track(resolvedConfig, "ad_request", { layer: "gam-entry" });
-        preconnectDemand(resolvedConfig);
         var root = buildShell(target, resolvedConfig);
-        startViewableRotation(root, resolvedConfig);
+        initCheckDivIsInViewPort(root, function () {
+          track(resolvedConfig, "ad_request", { layer: "gam-entry" });
+          preconnectDemand(resolvedConfig);
+          startViewableRotation(root, resolvedConfig);
+        });
       })
       .catch(function () {
-        track(config, "ad_request", { layer: "gam-entry" });
-        preconnectDemand(config);
         var root = buildShell(target, config);
-        track(config, "config_error", { layer: "config" });
-        startViewableRotation(root, config);
+        initCheckDivIsInViewPort(root, function () {
+          track(config, "ad_request", { layer: "gam-entry" });
+          preconnectDemand(config);
+          track(config, "config_error", { layer: "config" });
+          startViewableRotation(root, config);
+        });
       });
+  }
+
+  function initCheckDivIsInViewPort(element, callback, visiblePercentage, delay) {
+    if (!element || typeof callback !== "function") return;
+
+    var percentage = numberValue(visiblePercentage, 0.2);
+    var waitMs = Math.max(0, numberValue(delay, 0));
+    var timer = null;
+    var called = false;
+    var observer = null;
+
+    function runOnce() {
+      if (called) return;
+      called = true;
+      if (timer) window.clearTimeout(timer);
+      timer = null;
+      if (observer) observer.disconnect();
+      callback();
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      runOnce();
+      return;
+    }
+
+    observer = new IntersectionObserver(function (entries) {
+      var entry = entries[0];
+      var isVisible = entry && entry.isIntersecting && entry.intersectionRatio >= percentage;
+
+      if (!isVisible) {
+        if (timer) window.clearTimeout(timer);
+        timer = null;
+        return;
+      }
+
+      if (called || timer) return;
+      if (waitMs > 0) {
+        timer = window.setTimeout(runOnce, waitMs);
+      } else {
+        runOnce();
+      }
+    }, { root: null, threshold: percentage });
+
+    observer.observe(element);
   }
 
   function loadConfig(config) {
