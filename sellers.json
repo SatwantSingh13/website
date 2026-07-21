@@ -3,7 +3,7 @@
   "contact_address": "Wolverhampton",
   "version": "1.0",
   "ext": {
-    "last_updated": "2026-07-04"
+    "last_updated": "2026-07-21"
   },
   "identifiers": [],
   "sellers": [
@@ -119,5 +119,76 @@
       "domain": "moneycontrol.com",
       "name": "moneycontrol"
     }
+    [
+  {
+    "seller_id": "2607002",
+    "seller_type": "PUBLISHER",
+    "name": "Weeb Central",
+    "domain": "weebcentral.com",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607003",
+    "seller_type": "PUBLISHER",
+    "name": "MangaPill",
+    "domain": "mangapill.com",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607004",
+    "seller_type": "PUBLISHER",
+    "name": "Rolia Scan",
+    "domain": "roliascan.com",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607005",
+    "seller_type": "PUBLISHER",
+    "name": "WCOFlix",
+    "domain": "wcoflix.tv",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607006",
+    "seller_type": "PUBLISHER",
+    "name": "MangaK",
+    "domain": "mangak.io",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607007",
+    "seller_type": "PUBLISHER",
+    "name": "Kagane",
+    "domain": "kagane.to",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607008",
+    "seller_type": "PUBLISHER",
+    "name": "FreeWebNovel",
+    "domain": "freewebnovel.com",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607009",
+    "seller_type": "PUBLISHER",
+    "name": "Foxaholic",
+    "domain": "foxaholic.com",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607010",
+    "seller_type": "PUBLISHER",
+    "name": "Arena Scan",
+    "domain": "arenascan.com",
+    "is_confidential": 0
+  },
+  {
+    "seller_id": "2607011",
+    "seller_type": "PUBLISHER",
+    "name": "ManhuaPlus",
+    "domain": "manhuaplus.org",
+    "is_confidential": 0
+  }
   ]
 }
