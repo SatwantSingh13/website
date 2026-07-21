@@ -1,0 +1,3 @@
+.brand-mark{display:block;flex:0 0 42px;width:42px;height:42px;transform:none;background:url('../images/nexbid-logo.png') center/contain no-repeat}
+.brand-mark i{display:none!important}
+@media(max-width:560px){.brand-mark{width:38px;height:38px;transform:none}}

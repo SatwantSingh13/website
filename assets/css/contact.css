@@ -1,0 +1,12 @@
+.contact-methods{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}
+.contact-direct .contact-method{display:flex;align-items:center;gap:13px;width:auto;margin:0;padding:17px 15px;border:1px solid var(--border);border-radius:18px;background:#fff;box-shadow:0 10px 28px rgba(64,25,72,.07);transition:transform .25s var(--ease),box-shadow .25s var(--ease),border-color .25s}
+.contact-direct .contact-method:hover{transform:translateY(-4px);border-color:#e9b7d1;box-shadow:0 16px 34px rgba(64,25,72,.12)}
+.contact-method-icon{flex:0 0 45px;width:45px;height:45px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#fff0f6,#f1eaff);color:var(--magenta)}
+.phone-method .contact-method-icon{background:linear-gradient(135deg,#f1eaff,#fff1e7);color:var(--purple)}
+.contact-method-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.contact-method b,.contact-method em{display:block;font-style:normal}
+.contact-method b{color:var(--ink);font-size:.72rem}.contact-method em{margin-top:2px;color:var(--muted);font-size:.73rem;font-weight:650;white-space:nowrap}
+.contact-direct address{margin:18px 0 8px;padding-left:4px;color:var(--ink);font-style:normal;font-weight:750}
+@media(max-width:1100px){.contact-methods{grid-template-columns:1fr}.contact-method em{font-size:.8rem}}
+@media(max-width:560px){.contact-direct .contact-method{padding:15px 13px}}
+.compact-success{margin-bottom:24px;padding:22px 15px;border-radius:18px;background:#effaf4}.compact-success>span{width:46px;height:46px;font-size:1.2rem}.compact-success h2{margin:10px 0 2px}.compact-success p{margin:0;color:var(--muted)}
