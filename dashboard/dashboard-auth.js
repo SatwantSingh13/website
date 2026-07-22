@@ -10,3 +10,11 @@
     });
   });
 })();
+Also remove the old authentication check:
+if (
+  sessionStorage.getItem(AUTH_KEY) !== "yes" &&
+  localStorage.getItem(AUTH_KEY) !== "yes"
+) {
+  window.location.replace("/#login");
+  return;
+}
