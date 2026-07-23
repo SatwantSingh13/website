@@ -113,7 +113,7 @@
     }
 
     var playerUrl = new URL("player-v1.js", currentScriptUrl);
-    playerUrl.searchParams.set("v", "20260714-2");
+    playerUrl.searchParams.set("v", "20260723-1");
     var playerScript = document.createElement("script");
     playerScript.async = true;
     playerScript.src = playerUrl.toString();
