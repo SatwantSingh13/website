@@ -123,7 +123,7 @@ const ExcelParser = (() => {
     return Array.from(grouped.values()).map((invoice) => {
       if (!invoice.partnerAddress) invoice.warnings.push("Missing address");
       if (!invoice.contactEmail) invoice.warnings.push("Missing email");
-      if (invoice.items.some((item) => !Number.isFinite(item.amount) || item.amount <= 0)) {
+      if (invoice.items.some((item) => !Number.isFinite(item.amount) || item.amount === 0)) {
         invoice.warnings.push("Invalid amount");
       }
 
