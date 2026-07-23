@@ -134,13 +134,7 @@
     "domain": "mangapill.com",
     "is_confidential": 0
   },
-  {
-    "seller_id": "2607004",
-    "seller_type": "PUBLISHER",
-    "name": "Rolia Scan",
-    "domain": "roliascan.com",
-    "is_confidential": 0
-  },
+
   {
     "seller_id": "2607005",
     "seller_type": "PUBLISHER",
