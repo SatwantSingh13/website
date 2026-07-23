@@ -8,21 +8,24 @@ const App = (() => {
 
   const els = {};
 
-  function init() {
+  async function init() {
     [
       "fileInput", "dropzone", "progressBar", "statusMessage", "invoiceRows",
       "searchInput", "warningList", "invoiceCount", "totalAmount", "billingMonth",
       "partnerCount", "generateAll", "downloadZip", "resetCounter", "loadSample",
       "settingsForm", "saveSettings", "restoreSettings", "themeToggle",
-      "generateAllTop", "downloadZipTop"
+      "generateAllTop", "downloadZipTop", "billingMonthInput", "issueDateInput",
+      "logoFile", "logoPreview"
     ].forEach((id) => {
       els[id] = document.getElementById(id);
     });
 
     applyTheme(Utils.getTheme());
+    applyBrandColors();
     hydrateSettingsForm();
-    bindEvents();
     refreshDates();
+    await hydrateDefaultLogo();
+    bindEvents();
     render();
   }
 
@@ -30,7 +33,42 @@ const App = (() => {
     const invoiceDate = new Date();
     const billingPeriod = Utils.previousMonth(invoiceDate);
     state.dates = { invoiceDate, billingPeriod };
-    els.billingMonth.textContent = Utils.displayMonth(billingPeriod);
+    els.issueDateInput.value = Utils.isoDate(invoiceDate);
+    els.billingMonthInput.value = `${billingPeriod.getFullYear()}-${String(billingPeriod.getMonth() + 1).padStart(2, "0")}`;
+    updateDateDisplay();
+  }
+
+  function updateDateDisplay() {
+    els.billingMonth.textContent = Utils.displayMonth(state.dates.billingPeriod);
+  }
+
+  function dateFromInput(value, includeDay = true) {
+    const parts = String(value).split("-").map(Number);
+    return includeDay
+      ? new Date(parts[0], parts[1] - 1, parts[2] || 1)
+      : new Date(parts[0], parts[1] - 1, 1);
+  }
+
+  async function hydrateDefaultLogo() {
+    if (!state.settings.logoDataUrl && state.settings.logoUrl) {
+      try {
+        const response = await fetch(state.settings.logoUrl);
+        const blob = await response.blob();
+        state.settings.logoDataUrl = await blobToDataUrl(blob);
+      } catch (error) {
+        state.settings.logoDataUrl = "";
+      }
+    }
+    els.logoPreview.src = state.settings.logoDataUrl || state.settings.logoUrl || "./nexbid-logo.png";
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   }
 
   function bindEvents() {
@@ -59,6 +97,27 @@ const App = (() => {
     });
 
     els.searchInput.addEventListener("input", renderRows);
+    els.billingMonthInput.addEventListener("change", () => {
+      state.dates.billingPeriod = dateFromInput(els.billingMonthInput.value, false);
+      refreshInvoicesForDates("Billing month updated.");
+    });
+    els.issueDateInput.addEventListener("change", () => {
+      state.dates.invoiceDate = dateFromInput(els.issueDateInput.value, true);
+      refreshInvoicesForDates("Issue date updated.");
+    });
+    els.logoFile.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (!["image/png", "image/jpeg"].includes(file.type)) {
+        setStatus("Please choose a PNG or JPEG logo.");
+        return;
+      }
+      state.settings.logoDataUrl = await blobToDataUrl(file);
+      els.logoPreview.src = state.settings.logoDataUrl;
+      Utils.saveSettings(state.settings);
+      state.generated.clear();
+      setStatus("Invoice logo updated and saved in this browser.");
+    });
     els.generateAll.addEventListener("click", generateAll);
     els.generateAllTop.addEventListener("click", generateAll);
     els.downloadZip.addEventListener("click", downloadZip);
@@ -75,6 +134,14 @@ const App = (() => {
     els.themeToggle.addEventListener("click", () => {
       applyTheme(document.body.classList.contains("dark") ? "light" : "dark");
     });
+  }
+
+  function refreshInvoicesForDates(message) {
+    state.invoices = assignInvoiceNumbers(state.invoices);
+    state.generated.clear();
+    updateDateDisplay();
+    setStatus(message);
+    render();
   }
 
   async function loadFile(file) {
@@ -126,7 +193,8 @@ const App = (() => {
     const query = Utils.normalise(els.searchInput.value).toLowerCase();
     const money = Utils.currencyFormatter(state.settings.currency);
     const rows = state.invoices.filter((invoice) => {
-      const haystack = `${invoice.partnerName} ${invoice.billType} ${invoice.contactEmail}`.toLowerCase();
+      const itemText = (invoice.items || []).map((item) => `${item.description} ${item.billType}`).join(" ");
+      const haystack = `${invoice.partnerName} ${invoice.billType} ${invoice.contactEmail} ${itemText}`.toLowerCase();
       return haystack.includes(query);
     });
 
@@ -140,7 +208,7 @@ const App = (() => {
       return `
         <tr>
           <td>${escapeHtml(invoice.partnerName)}<br><small>${escapeHtml(invoice.contactEmail || "No email")}</small></td>
-          <td>${escapeHtml(invoice.billType)}</td>
+          <td><strong>${invoice.items?.length || 1}</strong><br><small>${escapeHtml(invoice.billType)}</small></td>
           <td>${invoice.paymentTerm} days</td>
           <td>${money.format(invoice.amount)}</td>
           <td>${invoice.invoiceNumber}</td>
@@ -255,16 +323,19 @@ const App = (() => {
     const formData = new FormData(els.settingsForm);
     state.settings = { ...state.settings, ...Object.fromEntries(formData.entries()) };
     Utils.saveSettings(state.settings);
+    applyBrandColors();
     state.invoices = assignInvoiceNumbers(state.invoices);
     state.generated.clear();
     setStatus("Settings saved in this browser.");
     render();
   }
 
-  function restoreSettings() {
+  async function restoreSettings() {
     Utils.resetSettings();
     state.settings = Utils.getSettings();
     hydrateSettingsForm();
+    await hydrateDefaultLogo();
+    applyBrandColors();
     state.invoices = assignInvoiceNumbers(state.invoices);
     state.generated.clear();
     setStatus("Default settings restored.");
@@ -274,6 +345,11 @@ const App = (() => {
   function applyTheme(theme) {
     document.body.classList.toggle("dark", theme === "dark");
     Utils.saveTheme(theme);
+  }
+
+  function applyBrandColors() {
+    document.documentElement.style.setProperty("--primary", state.settings.primaryColor || "#ff168f");
+    document.documentElement.style.setProperty("--accent", state.settings.accentColor || "#7b2cff");
   }
 
   function setProgress(value) {
