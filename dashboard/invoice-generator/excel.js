@@ -37,6 +37,20 @@ const ExcelParser = (() => {
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  function rowsFromDetectedHeader(sheet, requiredHeaders, sheetName) {
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+    const headerIndex = rawRows.findIndex((row) => {
+      const cells = row.map((value) => Utils.normalise(value).toLowerCase());
+      return requiredHeaders.every((aliases) => aliases.some((alias) => cells.includes(alias)));
+    });
+
+    if (headerIndex < 0) {
+      throw new Error(`${sheetName} is missing the required column headers.`);
+    }
+
+    return XLSX.utils.sheet_to_json(sheet, { range: headerIndex, defval: "" });
+  }
+
   function parseWorkbook(arrayBuffer) {
     if (!window.XLSX) {
       throw new Error("SheetJS did not load. Check the CDN script or use a bundled copy.");
@@ -50,8 +64,16 @@ const ExcelParser = (() => {
       throw new Error("Workbook must include InvoiceData and Partners sheets.");
     }
 
-    const invoiceRows = XLSX.utils.sheet_to_json(invoiceSheet, { defval: "" });
-    const partnerRows = XLSX.utils.sheet_to_json(partnerSheet, { defval: "" });
+    const invoiceRows = rowsFromDetectedHeader(
+      invoiceSheet,
+      [invoiceFields.partnerName],
+      "InvoiceData"
+    );
+    const partnerRows = rowsFromDetectedHeader(
+      partnerSheet,
+      [partnerFields.partnerName],
+      "Partners"
+    );
     const partners = new Map();
 
     mapRows(partnerRows, partnerFields).forEach((partner) => {
