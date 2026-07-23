@@ -1,189 +1,171 @@
-const InvoicePdf = (() => {
-  function hexToRgb(hex) {
-    const clean = String(hex || "#ff168f").replace("#", "");
-    const value = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
-    return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-  }
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NexBid Invoice Generator</title>
+    <meta name="description" content="Static NexBid invoice generator for Excel uploads and print-ready PDF invoices.">
+    <link rel="icon" type="image/png" href="./nexbid-logo.png">
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./index.html" aria-label="NexBid home">
+        <span class="brand-mark"><img src="./nexbid-logo.png" alt=""></span>
+        <span>NexBid</span>
+      </a>
+      <nav class="nav" aria-label="Invoice tools">
+        <a href="../">Dashboard</a>
+        <a href="#upload">Upload</a>
+        <a href="#preview">Preview</a>
+        <a href="#settings">Settings</a>
+      </nav>
+      <button class="icon-button" id="themeToggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <span aria-hidden="true">◐</span>
+      </button>
+    </header>
 
-  function lines(doc, text, x, y, maxWidth, lineHeight) {
-    const split = doc.splitTextToSize(String(text || ""), maxWidth);
-    doc.text(split, x, y);
-    return y + split.length * lineHeight;
-  }
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">NexBid UK Billing</p>
+          <h1>Invoice generator</h1>
+          <p class="lede">Upload the monthly Excel workbook, validate partner rows, preview invoices, and export professional PDFs directly from the browser.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="primary" id="generateAllTop" type="button">Generate All PDFs</button>
+          <button class="secondary" id="downloadZipTop" type="button">Download ZIP</button>
+        </div>
+      </section>
 
-  function addLogo(doc, settings) {
-    if (settings.logoDataUrl) {
-      try {
-        const format = settings.logoDataUrl.includes("image/jpeg") ? "JPEG" : "PNG";
-        doc.addImage(settings.logoDataUrl, format, 18, 4, 12, 12, undefined, "FAST");
-        return 34;
-      } catch (error) {
-        // Fall back to logo text if an unsupported image is stored.
-      }
-    }
-    return 18;
-  }
+      <section class="dashboard" aria-label="Invoice dashboard">
+        <article class="metric">
+          <span>Invoices</span>
+          <strong id="invoiceCount">0</strong>
+        </article>
+        <article class="metric">
+          <span>Total Amount</span>
+          <strong id="totalAmount">£0.00</strong>
+        </article>
+        <article class="metric">
+          <span>Billing Month</span>
+          <strong id="billingMonth">-</strong>
+        </article>
+        <article class="metric">
+          <span>Partners</span>
+          <strong id="partnerCount">0</strong>
+        </article>
+      </section>
 
-  function drawHeader(doc, settings, primary, pageNumber) {
-    doc.setFillColor(primary[0], primary[1], primary[2]);
-    doc.rect(0, 0, 210, 20, "F");
-    doc.setFillColor(123, 44, 255);
-    doc.rect(150, 0, 42, 20, "F");
-    doc.setFillColor(255, 106, 0);
-    doc.rect(192, 0, 18, 20, "F");
-    const textX = addLogo(doc, settings);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text(settings.logoText || settings.companyName, textX, 12.5);
-    if (pageNumber > 1) {
-      doc.setFontSize(9);
-      doc.text(`Page ${pageNumber}`, 181, 12.5);
-    }
-  }
+      <section class="panel date-controls" aria-label="Invoice dates">
+        <div class="section-title">
+          <p>Invoice period</p>
+          <h2>Billing month and issue date</h2>
+        </div>
+        <div class="date-grid">
+          <label>Billing Month<input id="billingMonthInput" type="month"></label>
+          <label>Issue Date<input id="issueDateInput" type="date"></label>
+        </div>
+        <p class="field-help">Changing either value immediately refreshes invoice numbers, due dates, previews, and generated PDFs.</p>
+      </section>
 
-  function drawTableHeader(doc, y, accent) {
-    doc.setFillColor(accent[0], accent[1], accent[2]);
-    doc.roundedRect(18, y, 174, 10, 2, 2, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.text("Description", 22, y + 6.5);
-    doc.text("Bill Type", 91, y + 6.5);
-    doc.text("Qty", 132, y + 6.5);
-    doc.text("Rate", 149, y + 6.5);
-    doc.text("Amount", 177, y + 6.5);
-    return y + 10;
-  }
+      <section class="workspace">
+        <aside class="panel" id="upload">
+          <div class="section-title">
+            <p>Workbook</p>
+            <h2>Upload Excel</h2>
+          </div>
+          <label class="dropzone" id="dropzone">
+            <input id="fileInput" type="file" accept=".xlsx,.xls,.csv">
+            <span>Drop Excel file here or click to browse</span>
+            <small>InvoiceData rows are grouped into one invoice per company. Partners holds address and email.</small>
+          </label>
+          <div class="progress-track" aria-label="Generation progress">
+            <span id="progressBar"></span>
+          </div>
+          <div class="tool-row">
+            <button class="primary" id="generateAll" type="button">Generate All</button>
+            <button class="secondary" id="downloadZip" type="button">ZIP</button>
+          </div>
+          <div class="tool-row">
+            <button class="secondary" id="resetCounter" type="button">Reset Counter</button>
+            <button class="secondary" id="loadSample" type="button">Load Sample</button>
+          </div>
+          <a class="template-link" href="./NexBid_Invoice_Template.xlsx" download>Download Excel template</a>
+          <div class="notice" id="statusMessage">No workbook loaded yet.</div>
+        </aside>
 
-  function create(invoice, settings, dates) {
-    if (!window.jspdf) {
-      throw new Error("jsPDF did not load. Check the CDN script or use a bundled copy.");
-    }
+        <section class="panel wide" id="preview">
+          <div class="section-head">
+            <div class="section-title">
+              <p>Preview</p>
+              <h2>Invoices</h2>
+            </div>
+            <label class="search">
+              <span>Search</span>
+              <input id="searchInput" placeholder="Partner, bill type, email">
+            </label>
+          </div>
+          <div class="warning-list" id="warningList" hidden></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Items</th>
+                  <th>Payment</th>
+                  <th>Amount</th>
+                  <th>Invoice No</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="invoiceRows">
+                <tr>
+                  <td colspan="7" class="empty">Upload a workbook to preview invoices.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const primary = hexToRgb(settings.primaryColor);
-    const accent = hexToRgb(settings.accentColor);
-    const money = Utils.currencyFormatter(settings.currency);
-    const margin = 18;
-    const items = invoice.items?.length ? invoice.items : [{
-      description: `NexBid advertising services for ${Utils.displayMonth(dates.billingPeriod)}`,
-      billType: invoice.billType,
-      quantity: 1,
-      unitPrice: invoice.amount,
-      amount: invoice.amount
-    }];
+      <section class="panel settings" id="settings">
+        <div class="section-title">
+          <p>Configuration</p>
+          <h2>Company, Bank, PDF Style</h2>
+        </div>
+        <form id="settingsForm" class="settings-grid">
+          <label>Company Name<input name="companyName"></label>
+          <label>Company Address<textarea name="companyAddress" rows="3"></textarea></label>
+          <label>Company Email<input name="companyEmail" type="email"></label>
+          <label>Company Website<input name="companyWebsite"></label>
+          <label>Bank Details<textarea name="bankDetails" rows="3"></textarea></label>
+          <label>Currency<select name="currency"><option value="GBP">GBP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="INR">INR</option></select></label>
+          <label>Invoice Prefix<input name="invoicePrefix"></label>
+          <label>Primary Color<input name="primaryColor" type="color"></label>
+          <label>Accent Color<input name="accentColor" type="color"></label>
+          <label>Logo Text<input name="logoText"></label>
+          <label class="logo-field">Invoice Logo
+            <input id="logoFile" type="file" accept="image/png,image/jpeg">
+            <span class="logo-preview"><img id="logoPreview" src="./nexbid-logo.png" alt="Current invoice logo"></span>
+            <small>PNG or JPEG. The selected logo is saved in this browser and added to generated PDFs.</small>
+          </label>
+        </form>
+        <div class="tool-row">
+          <button class="primary" id="saveSettings" type="button">Save Settings</button>
+          <button class="secondary" id="restoreSettings" type="button">Restore Defaults</button>
+        </div>
+      </section>
+    </main>
 
-    drawHeader(doc, settings, primary, 1);
-
-    doc.setTextColor(18, 18, 24);
-    doc.setFontSize(24);
-    doc.text("INVOICE", 152, 34);
-    doc.setFontSize(9.5);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Invoice No: ${invoice.invoiceNumber}`, 152, 42);
-    doc.text(`Issue Date: ${Utils.isoDate(dates.invoiceDate)}`, 152, 48);
-    doc.text(`Due Date: ${Utils.isoDate(dates.dueDate)}`, 152, 54);
-    doc.text(`Billing Month: ${Utils.displayMonth(dates.billingPeriod)}`, 152, 60);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(settings.companyName, margin, 34);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    let y = lines(doc, settings.companyAddress, margin, 40, 72, 5);
-    doc.text(settings.companyEmail, margin, y + 1);
-    doc.text(settings.companyWebsite, margin, y + 6);
-
-    doc.setDrawColor(229, 222, 241);
-    doc.line(margin, 70, 192, 70);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Bill To", margin, 82);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(invoice.partnerName, margin, 90);
-    y = lines(doc, invoice.partnerAddress, margin, 96, 95, 5);
-    doc.text(invoice.contactEmail, margin, y + 1);
-
-    y = drawTableHeader(doc, 118, accent);
-    doc.setTextColor(18, 18, 24);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-
-    items.forEach((item, index) => {
-      const descriptionLines = doc.splitTextToSize(item.description || item.billType || "Service", 64);
-      const billTypeLines = doc.splitTextToSize(item.billType || "Service", 34);
-      const rowHeight = Math.max(13, Math.max(descriptionLines.length, billTypeLines.length) * 4.2 + 5);
-
-      if (y + rowHeight > 250) {
-        doc.addPage();
-        drawHeader(doc, settings, primary, doc.getNumberOfPages());
-        y = drawTableHeader(doc, 30, accent);
-        doc.setTextColor(18, 18, 24);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
-      }
-
-      if (index % 2 === 1) {
-        doc.setFillColor(250, 247, 255);
-        doc.rect(margin, y, 174, rowHeight, "F");
-      }
-      doc.setDrawColor(229, 222, 241);
-      doc.rect(margin, y, 174, rowHeight);
-      doc.text(descriptionLines, 22, y + 6);
-      doc.text(billTypeLines, 91, y + 6);
-      doc.text(String(item.quantity || 1), 134, y + 6);
-      doc.text(money.format(item.unitPrice || item.amount), 147, y + 6);
-      doc.text(money.format(item.amount), 174, y + 6);
-      y += rowHeight;
-    });
-
-    const tax = invoice.amount * (Number(settings.taxRate) || 0);
-    const total = invoice.amount + tax;
-    if (y + 50 > 276) {
-      doc.addPage();
-      drawHeader(doc, settings, primary, doc.getNumberOfPages());
-      y = 34;
-    } else {
-      y += 10;
-    }
-
-    const totalsX = 128;
-    doc.setTextColor(18, 18, 24);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    doc.text("Subtotal", totalsX, y);
-    doc.text(money.format(invoice.amount), 171, y);
-    doc.text(`Tax (${Number(settings.taxRate || 0) * 100}%)`, totalsX, y + 8);
-    doc.text(money.format(tax), 171, y + 8);
-    doc.setDrawColor(primary[0], primary[1], primary[2]);
-    doc.line(totalsX, y + 13, 192, y + 13);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("Grand Total", totalsX, y + 22);
-    doc.text(money.format(total), 169, y + 22);
-
-    const bankY = Math.min(y + 46, 244);
-    doc.setDrawColor(229, 222, 241);
-    doc.line(margin, bankY - 8, 192, bankY - 8);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Bank Details", margin, bankY);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    lines(doc, settings.bankDetails, margin, bankY + 7, 100, 5);
-    doc.setTextColor(primary[0], primary[1], primary[2]);
-    doc.setFont("helvetica", "bold");
-    doc.text(settings.thankYouMessage || "Thank you for your business.", margin, 282);
-
-    return doc;
-  }
-
-  function fileName(invoice) {
-    return `Invoice_${invoice.invoiceNumber}_${Utils.safeFileName(invoice.partnerName)}.pdf`;
-  }
-
-  return { create, fileName };
-})();
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="./config.js"></script>
+    <script src="./utils.js"></script>
+    <script src="./excel.js"></script>
+    <script src="./invoice.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
