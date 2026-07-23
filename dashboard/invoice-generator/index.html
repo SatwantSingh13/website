@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NexBid Invoice Generator</title>
     <meta name="description" content="Static NexBid invoice generator for Excel uploads and print-ready PDF invoices.">
-    <script src="../dashboard-auth.js?v=login-1"></script>
+    <link rel="icon" type="image/png" href="./nexbid-logo.png">
     <link rel="stylesheet" href="./style.css">
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="./index.html" aria-label="NexBid home">
-        <span class="brand-mark">N</span>
+        <span class="brand-mark"><img src="./nexbid-logo.png" alt=""></span>
         <span>NexBid</span>
       </a>
       <nav class="nav" aria-label="Invoice tools">
@@ -57,6 +57,18 @@
         </article>
       </section>
 
+      <section class="panel date-controls" aria-label="Invoice dates">
+        <div class="section-title">
+          <p>Invoice period</p>
+          <h2>Billing month and issue date</h2>
+        </div>
+        <div class="date-grid">
+          <label>Billing Month<input id="billingMonthInput" type="month"></label>
+          <label>Issue Date<input id="issueDateInput" type="date"></label>
+        </div>
+        <p class="field-help">Changing either value immediately refreshes invoice numbers, due dates, previews, and generated PDFs.</p>
+      </section>
+
       <section class="workspace">
         <aside class="panel" id="upload">
           <div class="section-title">
@@ -66,7 +78,7 @@
           <label class="dropzone" id="dropzone">
             <input id="fileInput" type="file" accept=".xlsx,.xls,.csv">
             <span>Drop Excel file here or click to browse</span>
-            <small>Sheet1: InvoiceData. Sheet2: Partners.</small>
+            <small>InvoiceData rows are grouped into one invoice per company. Partners holds address and email.</small>
           </label>
           <div class="progress-track" aria-label="Generation progress">
             <span id="progressBar"></span>
@@ -79,6 +91,7 @@
             <button class="secondary" id="resetCounter" type="button">Reset Counter</button>
             <button class="secondary" id="loadSample" type="button">Load Sample</button>
           </div>
+          <a class="template-link" href="./NexBid_Invoice_Template.xlsx" download>Download Excel template</a>
           <div class="notice" id="statusMessage">No workbook loaded yet.</div>
         </aside>
 
@@ -99,7 +112,7 @@
               <thead>
                 <tr>
                   <th>Partner</th>
-                  <th>Bill Type</th>
+                  <th>Items</th>
                   <th>Payment</th>
                   <th>Amount</th>
                   <th>Invoice No</th>
@@ -133,6 +146,11 @@
           <label>Primary Color<input name="primaryColor" type="color"></label>
           <label>Accent Color<input name="accentColor" type="color"></label>
           <label>Logo Text<input name="logoText"></label>
+          <label class="logo-field">Invoice Logo
+            <input id="logoFile" type="file" accept="image/png,image/jpeg">
+            <span class="logo-preview"><img id="logoPreview" src="./nexbid-logo.png" alt="Current invoice logo"></span>
+            <small>PNG or JPEG. The selected logo is saved in this browser and added to generated PDFs.</small>
+          </label>
         </form>
         <div class="tool-row">
           <button class="primary" id="saveSettings" type="button">Save Settings</button>
@@ -141,12 +159,12 @@
       </section>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="./vendor/xlsx.full.min.js"></script>
+    <script src="./vendor/jspdf.umd.min.js"></script>
+    <script src="./vendor/jszip.min.js"></script>
     <script src="./config.js"></script>
     <script src="./utils.js"></script>
-    <script src="./excel.js"></script>
+    <script src="./excel.js?v=20260723-5"></script>
     <script src="./invoice.js"></script>
     <script src="./script.js"></script>
   </body>

@@ -1,14 +1,16 @@
 window.NEXBID_CONFIG = {
-  companyName: "NexBid UK",
-  companyAddress: "London, United Kingdom",
-  companyEmail: "billing@nexbid.uk",
-  companyWebsite: "nexbid.uk",
-  bankDetails: "Bank: Your Bank Name\nAccount Name: NexBid UK\nAccount No: 00000000\nSort Code: 00-00-00",
-  currency: "GBP",
+  companyName: "NEXBID LTD",
+  companyAddress: "41A Goldthorn Avenue, Wolverhampton, England, WV4 5AA",
+  companyEmail: "Finance@nexbid.uk",
+  companyWebsite: "www.nexbid.uk",
+  bankDetails: "Bank: Monzo Bank Name\n Account Name:NEXBID LTD \n IBAN: GB25MONZ04000547726431\n BIC/ SWIFT: MONZGB2L \n Address: Broadwalk House, 5 Appold St, London EC2A 2AG, United Kingdom",
+  currency: "USD",
   invoicePrefix: "00",
   logoText: "NexBid",
-  primaryColor: "#0069ff",
-  accentColor: "#7c3cff",
+  logoUrl: "./nexbid-logo.png",
+  logoDataUrl: "",
+  primaryColor: "#ff168f",
+  accentColor: "#7b2cff",
   taxRate: 0,
-  thankYouMessage: "Thank you for your business."
+  thankYouMessage: "Thank you for business."
 };
