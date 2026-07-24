@@ -35,10 +35,11 @@ export async function onRequestGet(context) {
 async function exactMetrics(store, date, configId) {
   if (!store.list) return { enabled: false };
   const prefix = `exact:${date}:${encodeURIComponent(configId)}:`;
-  const [requests, filled, deliveries, partnerRequests, diagnostics] = await Promise.all([
+  const [requests, filled, deliveries, terminals, partnerRequests, diagnostics] = await Promise.all([
     listAll(store, `${prefix}request:`),
     listAll(store, `${prefix}filled:`),
     listAll(store, `${prefix}delivery:`),
+    listAll(store, `${prefix}terminal:`),
     listAll(store, `${prefix}partner-request:`),
     listAll(store, `${prefix}diagnostic:`),
   ]);
@@ -46,7 +47,7 @@ async function exactMetrics(store, date, configId) {
   let impressionRevenue = 0;
   let exactSince = "";
 
-  requests.concat(filled, deliveries, partnerRequests, diagnostics).forEach((item) => {
+  requests.concat(filled, deliveries, terminals, partnerRequests, diagnostics).forEach((item) => {
     const metadata = item.metadata || {};
     if (metadata.ts && (!exactSince || metadata.ts < exactSince)) exactSince = metadata.ts;
   });
@@ -66,6 +67,11 @@ async function exactMetrics(store, date, configId) {
     partners[partnerName].requests += 1;
   });
   const failureReasons = {};
+  const terminalStates = {};
+  terminals.forEach((item) => {
+    const state = item.metadata?.terminalState || "unknown";
+    terminalStates[state] = (terminalStates[state] || 0) + 1;
+  });
   diagnostics.forEach((item) => {
     const metadata = item.metadata || {};
     const partnerName = metadata.partnerName || "Unknown";
@@ -86,6 +92,8 @@ async function exactMetrics(store, date, configId) {
     ecpm: deliveries.length && impressionRevenue > 0 ? (impressionRevenue / deliveries.length) * 1000 : null,
     partners,
     failureReasons,
+    terminalStates,
+    terminalRequests: terminals.length,
   };
 }
 
@@ -120,6 +128,9 @@ function emptySummary(key) {
     partners: {},
     versions: {},
     updatedAt: "",
+    terminalStates: {},
+    totalAuctionLatencyMs: 0,
+    totalTimeToFirstRenderMs: 0,
   };
 }
 

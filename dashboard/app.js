@@ -18,6 +18,26 @@
     height: document.getElementById("height"),
     cdnScript: document.getElementById("cdnScript"),
     apiBase: document.getElementById("apiBase"),
+    applySafePreset: document.getElementById("applySafePreset"),
+    safeConfigId: document.getElementById("safeConfigId"),
+    configVersion: document.getElementById("configVersion"),
+    gamLineItemCpm: document.getElementById("gamLineItemCpm"),
+    minimumInternalCpm: document.getElementById("minimumInternalCpm"),
+    currency: document.getElementById("currency"),
+    priceMismatchTolerance: document.getElementById("priceMismatchTolerance"),
+    viewabilityThreshold: document.getElementById("viewabilityThreshold"),
+    viewabilityTimeMs: document.getElementById("viewabilityTimeMs"),
+    viewabilityWaitTimeoutMs: document.getElementById("viewabilityWaitTimeoutMs"),
+    passbackTimeoutMs: document.getElementById("passbackTimeoutMs"),
+    passbackScriptUrl: document.getElementById("passbackScriptUrl"),
+    passbackHtml: document.getElementById("passbackHtml"),
+    enablePassback: document.getElementById("enablePassback"),
+    collapseOnPassbackFailure: document.getElementById("collapseOnPassbackFailure"),
+    rejectBelowGamRate: document.getElementById("rejectBelowGamRate"),
+    allowVpaid: document.getElementById("allowVpaid"),
+    legacyConfigId: document.getElementById("legacyConfigId"),
+    duplicateLegacyConfig: document.getElementById("duplicateLegacyConfig"),
+    priceWarning: document.getElementById("priceWarning"),
     demandForm: document.getElementById("demandForm"),
     demandName: document.getElementById("demandName"),
     demandType: document.getElementById("demandType"),
@@ -211,6 +231,18 @@
   els.generateShortTagV2.addEventListener("click", generateShortTagV2);
   els.refreshReport.addEventListener("click", refreshReport);
   els.autoRefreshReport.addEventListener("click", toggleAutoRefreshReport);
+  els.applySafePreset.addEventListener("click", applySafePreset);
+  els.duplicateLegacyConfig.addEventListener("click", duplicateLegacyConfig);
+
+  [
+    els.gamLineItemCpm, els.minimumInternalCpm, els.currency, els.priceMismatchTolerance,
+    els.viewabilityThreshold, els.viewabilityTimeMs, els.viewabilityWaitTimeoutMs,
+    els.passbackTimeoutMs, els.passbackScriptUrl, els.passbackHtml, els.safeConfigId,
+    els.enablePassback, els.collapseOnPassbackFailure, els.rejectBelowGamRate, els.allowVpaid
+  ].forEach(function (input) {
+    input.addEventListener("input", function () { updatePriceWarning(); generateTag(); });
+    input.addEventListener("change", function () { updatePriceWarning(); generateTag(); });
+  });
 
   els.copyTag.addEventListener("click", function () {
     els.tagOutput.select();
@@ -450,6 +482,14 @@
       '<script',
       '  src="' + config.setup.cdnScript + '"',
       '  data-config-id="' + configId + '"',
+      '  data-config-version="' + (state.configVersion || 1) + '"',
+      '  data-publisher-id="' + config.setup.publisherId + '"',
+      '  data-publisher-domain="' + config.setup.publisherDomain + '"',
+      '  data-placement-id="' + config.setup.placementId + '"',
+      '  data-width="' + config.setup.width + '"',
+      '  data-height="' + config.setup.height + '"',
+      '  data-gam-click="%%CLICK_URL_UNESC%%"',
+      '  data-gam-cachebuster="%%CACHEBUSTER%%"',
       '  data-api-base="' + trimSlash(config.setup.apiBase) + '">',
       "</script>"
     ].join("\n");
@@ -483,6 +523,9 @@
       })
       .then(function (result) {
         state.configId = result.configId;
+        state.configVersion = result.configVersion || 1;
+        els.safeConfigId.value = result.configId;
+        els.configVersion.value = state.configVersion;
         showNotice(els.demandNotice, "Final config " + result.configId + " has been saved.");
         els.tagOutput.value = result.tag || "";
       })
@@ -523,6 +566,8 @@
 
   function buildConfig() {
     return {
+      productVersion: "Version 1 Price Priority Safe",
+      preset: "gam-price-priority-production-safe",
       setup: {
         publisherId: els.publisherId.value.trim(),
         publisherDomain: els.publisherDomain.value.trim(),
@@ -536,18 +581,136 @@
       displayTags: state.displayTags,
       prebid: state.prebid,
       adserverTags: state.adserverTags,
-      configId: domainConfigId(els.publisherDomain.value.trim(), "Version 1")
+      configId: els.safeConfigId.value.trim() || placementConfigId(),
+      configVersion: Number(state.configVersion || 1),
+      maxAuctionCycles: 1,
+      internalRefresh: false,
+      serverSideVastResolution: true,
+      legacyBrowserVastFallback: false,
+      enablePassback: els.enablePassback.checked,
+      passbackHtml: els.passbackHtml.value,
+      passbackScriptUrl: els.passbackScriptUrl.value.trim(),
+      passbackTimeoutMs: numberOr(els.passbackTimeoutMs.value, 2000),
+      collapseOnPassbackFailure: els.collapseOnPassbackFailure.checked,
+      viewabilityThreshold: numberOr(els.viewabilityThreshold.value, 0.5),
+      viewabilityTimeMs: numberOr(els.viewabilityTimeMs.value, 1000),
+      viewabilityWaitTimeoutMs: numberOr(els.viewabilityWaitTimeoutMs.value, 15000),
+      auctionOnViewabilityTimeout: false,
+      gamLineItemCpm: numberOr(els.gamLineItemCpm.value, 0),
+      minimumInternalCpm: numberOr(els.minimumInternalCpm.value, 0),
+      currency: els.currency.value.trim().toUpperCase(),
+      rejectBelowGamRate: els.rejectBelowGamRate.checked,
+      priceMismatchTolerance: numberOr(els.priceMismatchTolerance.value, 0),
+      gamClickMacro: "%%CLICK_URL_UNESC%%",
+      gamCachebuster: "%%CACHEBUSTER%%",
+      allowVpaid: els.allowVpaid.checked
     };
   }
 
+  function applySafePreset() {
+    els.cdnScript.value = "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260724-1";
+    els.viewabilityThreshold.value = "0.5";
+    els.viewabilityTimeMs.value = "1000";
+    els.viewabilityWaitTimeoutMs.value = "15000";
+    els.enablePassback.checked = true;
+    els.rejectBelowGamRate.checked = true;
+    els.allowVpaid.checked = false;
+    els.safeConfigId.value = placementConfigId();
+    updatePriceWarning();
+    generateTag();
+  }
+
+  function placementConfigId() {
+    var domain = String(els.publisherDomain.value || "").trim().toLowerCase()
+      .replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+    var placement = String(els.placementId.value || "placement").toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+    return domain + "--" + placement + "--" + numberOr(els.width.value, 300) + "x" + numberOr(els.height.value, 250) + "--v1";
+  }
+
+  function updatePriceWarning() {
+    var gam = numberOr(els.gamLineItemCpm.value, 0);
+    var internal = numberOr(els.minimumInternalCpm.value, 0);
+    els.priceWarning.textContent = gam > internal
+      ? "Warning: GAM Price Priority CPM is higher than the protected internal floor. This can create publisher liability without matching demand."
+      : "Price protection is configured. GAM still sees a static CPM; it does not receive the internal winner CPM.";
+  }
+
+  function duplicateLegacyConfig() {
+    var safeConfig = buildConfig();
+    var legacyConfigId = els.legacyConfigId.value.trim();
+    if (!legacyConfigId) {
+      showNotice(els.priceWarning, "Enter a legacy configuration ID first.");
+      return;
+    }
+    var migration = {
+      legacyConfigId: legacyConfigId,
+      configId: safeConfig.configId,
+      productVersion: safeConfig.productVersion,
+      preset: safeConfig.preset,
+      setup: safeConfig.setup,
+      maxAuctionCycles: 1,
+      internalRefresh: false,
+      serverSideVastResolution: true,
+      legacyBrowserVastFallback: false,
+      enablePassback: safeConfig.enablePassback,
+      passbackHtml: safeConfig.passbackHtml,
+      passbackScriptUrl: safeConfig.passbackScriptUrl,
+      passbackTimeoutMs: safeConfig.passbackTimeoutMs,
+      collapseOnPassbackFailure: safeConfig.collapseOnPassbackFailure,
+      viewabilityThreshold: safeConfig.viewabilityThreshold,
+      viewabilityTimeMs: safeConfig.viewabilityTimeMs,
+      viewabilityWaitTimeoutMs: safeConfig.viewabilityWaitTimeoutMs,
+      auctionOnViewabilityTimeout: false,
+      gamLineItemCpm: safeConfig.gamLineItemCpm,
+      minimumInternalCpm: safeConfig.minimumInternalCpm,
+      currency: safeConfig.currency,
+      rejectBelowGamRate: safeConfig.rejectBelowGamRate,
+      priceMismatchTolerance: safeConfig.priceMismatchTolerance,
+      gamClickMacro: safeConfig.gamClickMacro,
+      gamCachebuster: safeConfig.gamCachebuster,
+      allowVpaid: safeConfig.allowVpaid
+    };
+    fetch(trimSlash(safeConfig.setup.apiBase) + "/api/v1/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(migration)
+    }).then(function (response) {
+      if (!response.ok) throw new Error("duplicate_failed");
+      return response.json();
+    }).then(function (result) {
+      state.configId = result.configId;
+      state.configVersion = result.configVersion;
+      els.safeConfigId.value = result.configId;
+      els.configVersion.value = result.configVersion;
+      els.tagOutput.value = result.tag;
+      showNotice(els.priceWarning, "Legacy configuration duplicated as " + result.configId + ".");
+    }).catch(function () {
+      showNotice(els.priceWarning, "Legacy configuration duplication failed.");
+    });
+  }
+
   function buildVersion2Config() {
-    var config = buildConfig();
-    config.productVersion = "Version 2 Testing";
-    config.rotationMode = "realtime-viewable-bidding";
-    config.setup.cdnScript = "https://nexbid.uk/nexbanner/version-2-testing/src/nexbanner-gam.js";
-    config.rotationMs = 10000;
-    config.configId = domainConfigId(config.setup.publisherDomain, "Version 2 Testing");
-    return config;
+    var safeConfig = buildConfig();
+    return {
+      setup: {
+        publisherId: safeConfig.setup.publisherId,
+        publisherDomain: safeConfig.setup.publisherDomain,
+        placementId: safeConfig.setup.placementId,
+        width: safeConfig.setup.width,
+        height: safeConfig.setup.height,
+        cdnScript: "https://nexbid.uk/nexbanner/version-2-testing/src/nexbanner-gam.js",
+        apiBase: safeConfig.setup.apiBase
+      },
+      demand: state.demand,
+      displayTags: state.displayTags,
+      prebid: state.prebid,
+      adserverTags: state.adserverTags,
+      productVersion: "Version 2 Testing",
+      rotationMode: "realtime-viewable-bidding",
+      rotationMs: 10000,
+      configId: domainConfigId(safeConfig.setup.publisherDomain, "Version 2 Testing")
+    };
   }
 
   function refreshReport() {
