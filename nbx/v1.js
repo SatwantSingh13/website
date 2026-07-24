@@ -59,6 +59,9 @@
       errorUrl: data.errorUrl || "",
       timeoutMs: numberOr(data.timeoutMs, 1800),
       vastGraceMs: numberOr(data.vastGraceMs, 800),
+      auctionBudgetMs: numberOr(data.auctionBudgetMs, 1200),
+      maxAuctionAttempts: numberOr(data.maxAuctionAttempts, 2),
+      auctionRetryDelayMs: numberOr(data.auctionRetryDelayMs, 2000),
       configTimeoutMs: numberOr(data.configTimeoutMs, 3000),
       cachebuster: String(Date.now()) + Math.floor(Math.random() * 1000000)
     };
@@ -113,7 +116,7 @@
     }
 
     var playerUrl = new URL("player-v1.js", currentScriptUrl);
-    playerUrl.searchParams.set("v", "20260723-1");
+    playerUrl.searchParams.set("v", "20260724-2");
     var playerScript = document.createElement("script");
     playerScript.async = true;
     playerScript.src = playerUrl.toString();
@@ -146,3 +149,4 @@
     return String(value || "").replace(/\/+$/, "");
   }
 })();
+
