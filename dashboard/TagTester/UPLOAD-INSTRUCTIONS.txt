@@ -1,0 +1,18 @@
+NEXBID HOSTED TEST — QUICK STEPS
+
+1. Extract this ZIP.
+2. Upload index.html to your website hosting.
+3. Example destination:
+   public_html/nexbanner-test/index.html
+4. Open:
+   https://yourdomain.com/nexbanner-test/
+5. Wait 20 seconds.
+6. Read the Outcome box.
+7. Press F12 and inspect Network and Console.
+
+TO CHANGE THE TAG:
+Open index.html and search for:
+
+PASTE OR REPLACE YOUR NEXBANNER TAG BELOW THIS LINE
+
+Replace only the tag between the start and end comments.
