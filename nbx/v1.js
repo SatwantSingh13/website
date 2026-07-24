@@ -1,3 +1,4 @@
+/*! NexBanner Version 3 release router — v=20260724-6 selects the commercial unified auction. */
 (function () {
   "use strict";
 

@@ -1,3 +1,4 @@
+// NexBanner Version 3 config API. "Version 1 Commercial Unified Auction" remains the compatibility key.
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: corsHeaders() });
 }

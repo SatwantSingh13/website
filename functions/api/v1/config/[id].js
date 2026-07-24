@@ -1,3 +1,4 @@
+// NexBanner Version 3 configuration delivery and cache endpoint.
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: corsHeaders() });
 }

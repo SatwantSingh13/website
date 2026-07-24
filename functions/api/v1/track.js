@@ -1,3 +1,4 @@
+// NexBanner Version 3 commercial-auction tracking fields and events.
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: corsHeaders() });
 }

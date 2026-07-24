@@ -1,3 +1,4 @@
+// NexBanner Version 3 commercial unified-auction dashboard controls.
 (function () {
   "use strict";
 

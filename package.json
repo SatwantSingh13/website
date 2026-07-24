@@ -1,5 +1,6 @@
 {
   "name": "nexbanner",
+  "description": "NexBanner Version 3 commercial unified-auction deployment",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.mjs",
