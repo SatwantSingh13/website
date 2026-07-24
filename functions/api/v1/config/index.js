@@ -45,7 +45,7 @@ function cacheConfig(context, configId, config) {
   const response = new Response(JSON.stringify(config), {
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "cache-control": "public, max-age=30, s-maxage=60, stale-while-revalidate=120",
+      "cache-control": "public, max-age=30, s-maxage=300, stale-while-revalidate=120",
       "etag": configEtag(config),
       "x-nexbanner-cache": "warm",
       ...corsHeaders(),
@@ -62,6 +62,7 @@ function cacheConfig(context, configId, config) {
 function normalizeConfig(configId, body) {
   const setup = body.setup || {};
   const productVersion = body.productVersion || "Version 1";
+  const commercialV1 = productVersion === "Version 1 Commercial Unified Auction" || body.preset === "v1-commercial-unified-auction";
   const safePricePriority = productVersion === "Version 1 Price Priority Safe" || body.preset === "gam-price-priority-production-safe";
   const isVersion2 = productVersion === "Version 2 Testing";
   const isNexSticky = productVersion === "NexSticky";
@@ -83,7 +84,7 @@ function normalizeConfig(configId, body) {
   ];
   const apiBase = trimSlash(safeUrl(setup.apiBase || "https://nexbid.uk"));
   const vastDemand = demand.filter((item) => item.type === "vast").concat(vast, legacyVast);
-  const prebidDemand = prebid.map((item) => ({
+  const prebidDemand = (commercialV1 ? [] : prebid).map((item) => ({
     name: item.name || "",
     endpoint: endpointOf(item) || `${apiBase}/api/v1/auction`,
     params: item.params || "",
@@ -93,14 +94,18 @@ function normalizeConfig(configId, body) {
   const vastDemandItems = vastDemand.map((item) => ({
     name: item.name || "",
     endpoint: endpointOf(item),
+    configuredBidCpm: item.configuredBidCpm || "",
     floorCpm: item.floorCpm || "",
+    currency: item.currency || (commercialV1 ? "USD" : ""),
     timeoutMs: item.timeoutMs || "",
     allowVpaid: safePricePriority ? item.allowVpaid === true : item.allowVpaid !== false,
   })).filter((item) => item.endpoint);
   const displayScriptDemand = displayTags.map((item) => ({
     name: item.name || "",
     endpoint: endpointOf(item),
+    configuredBidCpm: item.configuredBidCpm || "",
     floorCpm: item.floorCpm || "",
+    currency: item.currency || (commercialV1 ? "USD" : ""),
     timeoutMs: item.timeoutMs || "",
   })).filter((item) => item.endpoint);
   const adserverScriptDemand = adserverTags
@@ -108,7 +113,9 @@ function normalizeConfig(configId, body) {
     .map((item) => ({
       name: item.name || "",
       endpoint: endpointOf(item),
+      configuredBidCpm: item.configuredBidCpm || "",
       floorCpm: item.floorCpm || "",
+      currency: item.currency || (commercialV1 ? "USD" : ""),
       timeoutMs: item.timeoutMs || "",
     }))
     .filter((item) => item.endpoint);
@@ -117,35 +124,47 @@ function normalizeConfig(configId, body) {
     .map((item) => ({
       name: item.name || "",
       html: normalizeHtmlPayload(item.html || ""),
+      configuredBidCpm: item.configuredBidCpm || "",
       floorCpm: item.floorCpm || "",
+      currency: item.currency || (commercialV1 ? "USD" : ""),
       timeoutMs: item.timeoutMs || "",
     }))
     .filter((item) => item.html);
   const ortbEndpoints = demand
-    .filter((item) => item.type === "ortb")
+    .filter((item) => !commercialV1 && item.type === "ortb")
     .map(endpointOf)
     .filter(Boolean);
   const ortbDemand = demand
-    .filter((item) => item.type === "ortb")
+    .filter((item) => !commercialV1 && item.type === "ortb")
     .map((item) => ({
       name: item.name || "",
       endpoint: endpointOf(item),
       floorCpm: item.floorCpm || "",
       timeoutMs: item.timeoutMs || "",
     }))
-    .concat(Array.isArray(body.ortbDemand) ? body.ortbDemand.map((item) => ({
+    .concat(!commercialV1 && Array.isArray(body.ortbDemand) ? body.ortbDemand.map((item) => ({
       name: item.name || "",
       endpoint: endpointOf(item),
       floorCpm: item.floorCpm || "",
       timeoutMs: item.timeoutMs || "",
     })) : [])
     .filter((item) => item.endpoint);
+  const displayDemand = demand
+    .filter((item) => item.type === "display")
+    .concat(Array.isArray(body.displayDemand) ? body.displayDemand : [])
+    .map((item) => ({
+      name: item.name || "",
+      endpoint: endpointOf(item),
+      timeoutMs: item.timeoutMs || "",
+    }))
+    .filter((item) => item.endpoint);
 
   return {
     configId,
     configVersion: Number(body.configVersion || 1),
     productVersion,
-    rotationMode: safePricePriority ? "gam-price-priority-production-safe" : (body.rotationMode || "version-1-viewable-rotation"),
+    rotationMode: commercialV1 ? "version-1-commercial-unified-auction" :
+      safePricePriority ? "gam-price-priority-production-safe" : (body.rotationMode || "version-1-viewable-rotation"),
     publisherId: setup.publisherId || "",
     publisherDomain: setup.publisherDomain || "",
     placementId: setup.placementId || (isNexSticky ? "bottom-sticky" : ""),
@@ -163,7 +182,8 @@ function normalizeConfig(configId, body) {
     adserverScriptUrls: adserverScriptDemand.map((item) => item.endpoint),
     adserverHtmlDemand,
     adserverHtmlTags: adserverHtmlDemand.map((item) => item.html),
-    displayEndpoint: endpointOf(demand.find((item) => item.type === "display") || {}) || "",
+    displayDemand,
+    displayEndpoint: (displayDemand[0] || {}).endpoint || "",
     ortbDemand,
     ortbEndpoints,
     ortbEndpoint: ortbEndpoints[0] || (isVersion2 ? `${apiBase}/api/v1/auction` : ""),
@@ -172,11 +192,14 @@ function normalizeConfig(configId, body) {
     vastResolverUrl: `${apiBase}/api/v1/vast/resolve`,
     serverSideVastResolution: safePricePriority ? true : body.serverSideVastResolution !== false,
     legacyBrowserVastFallback: safePricePriority ? false : body.legacyBrowserVastFallback === true,
-    maxAuctionCycles: safePricePriority ? 1 : Number(body.maxAuctionCycles || 1),
-    internalRefresh: safePricePriority ? false : body.internalRefresh === true,
+    maxAuctionCycles: commercialV1 || safePricePriority ? 1 : Number(body.maxAuctionCycles || 1),
+    internalRefresh: commercialV1 || safePricePriority ? false : body.internalRefresh === true,
     auctionBudgetMs: Number(body.auctionBudgetMs || setup.auctionBudgetMs || 1200),
-    viewabilityThreshold: Number(body.viewabilityThreshold ?? setup.viewabilityThreshold ?? (safePricePriority ? 0.5 : 0.2)),
-    viewabilityTimeMs: Number(body.viewabilityTimeMs ?? setup.viewabilityTimeMs ?? (safePricePriority ? 1000 : 0)),
+    auctionTimeoutMs: Number(body.auctionTimeoutMs || setup.auctionTimeoutMs || (commercialV1 ? 900 : 1200)),
+    partnerTimeoutMs: Number(body.partnerTimeoutMs || setup.partnerTimeoutMs || (commercialV1 ? 750 : 1200)),
+    bidTtlMs: Number(body.bidTtlMs || setup.bidTtlMs || 5000),
+    viewabilityThreshold: Number(body.viewabilityThreshold ?? setup.viewabilityThreshold ?? (commercialV1 ? 0.3 : safePricePriority ? 0.5 : 0.2)),
+    viewabilityTimeMs: Number(body.viewabilityTimeMs ?? setup.viewabilityTimeMs ?? (commercialV1 ? 200 : safePricePriority ? 1000 : 0)),
     viewabilityWaitTimeoutMs: Number(body.viewabilityWaitTimeoutMs ?? setup.viewabilityWaitTimeoutMs ?? 15000),
     auctionOnViewabilityTimeout: body.auctionOnViewabilityTimeout === true,
     enablePassback: safePricePriority ? body.enablePassback !== false : body.enablePassback === true,
@@ -186,13 +209,13 @@ function normalizeConfig(configId, body) {
     collapseOnPassbackFailure: body.collapseOnPassbackFailure === true,
     gamLineItemCpm: Number(body.gamLineItemCpm || setup.gamLineItemCpm || 0),
     minimumInternalCpm: Number(body.minimumInternalCpm || setup.minimumInternalCpm || 0),
-    currency: String(body.currency || setup.currency || "INR").toUpperCase().slice(0, 3),
+    currency: String(commercialV1 ? "USD" : (body.currency || setup.currency || "INR")).toUpperCase().slice(0, 3),
     rejectBelowGamRate: safePricePriority ? body.rejectBelowGamRate !== false : body.rejectBelowGamRate === true,
     priceMismatchTolerance: Number(body.priceMismatchTolerance || setup.priceMismatchTolerance || 0),
     gamClickMacro: String(body.gamClickMacro || setup.gamClickMacro || ""),
     gamCachebuster: String(body.gamCachebuster || setup.gamCachebuster || ""),
     allowVpaid: safePricePriority ? body.allowVpaid === true : body.allowVpaid !== false,
-    rotationMs: Number(body.rotationMs || setup.rotationMs || 10000),
+    rotationMs: commercialV1 ? 0 : Number(body.rotationMs || setup.rotationMs || 10000),
     displayImageUrl: safeUrl(body.displayImageUrl || setup.displayImageUrl || ""),
     remnantImageUrl: safeUrl(fallbackImageUrl),
     logoText: "N",
@@ -222,6 +245,7 @@ function shortTag(configId, config) {
 }
 
 function scriptForProduct(productVersion) {
+  if (productVersion === "Version 1 Commercial Unified Auction") return "https://nexbid.uk/nbx/v1.js?v=20260724-6";
   if (productVersion === "Version 1 Price Priority Safe") return "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260724-1";
   if (productVersion === "Version 2 Testing") return "https://nexbid.uk/nexbanner/version-2-testing/src/nexbanner-gam.js";
   if (productVersion === "NexSticky") return "https://nexbid.uk/nexsticky/final/src/nexsticky-gam.js";
