@@ -110,11 +110,15 @@
   function startViewableRotation(root, config) {
     var state = {
       active: true,
-      visible: false,
+      visible: true,
       timer: null,
       currentLayer: "",
       running: true,
       pendingRestart: false,
+      auctionAttempt: 0,
+      maxAuctionAttempts: Math.max(1, numberValue(config.maxAuctionAttempts, 2)),
+      auctionBudgetMs: Math.max(300, numberValue(config.auctionBudgetMs, 1200)),
+      auctionRetryDelayMs: Math.max(0, numberValue(config.auctionRetryDelayMs, 2000)),
       durationMs: numberValue(config.rotationMs, 10000),
       minRenderMs: Math.max(5000, numberValue(config.minRenderMs, 5000)),
       hasRenderedAd: false,
@@ -145,10 +149,10 @@
     function markHidden() {
       if (!state.visible) return;
       state.visible = false;
-      if (!state.running) {
-        clearTimer(state);
-        state.pendingRestart = true;
-      }
+      state.cycleId = (state.cycleId || 0) + 1;
+      state.running = false;
+      clearTimer(state);
+      state.pendingRestart = true;
       track(config, "viewable_pause", { layer: "viewability" });
     }
 
@@ -157,102 +161,167 @@
     } else {
       var observer = new IntersectionObserver(function (entries) {
         var entry = entries[0];
-        if (entry && entry.isIntersecting && entry.intersectionRatio >= 0.5) markVisible();
+        if (entry && entry.isIntersecting && entry.intersectionRatio >= 0.2) markVisible();
         else markHidden();
-      }, { threshold: [0, 0.5, 1] });
+      }, { threshold: [0, 0.2, 1] });
 
       observer.observe(root);
     }
 
     state.nextIndex = 0;
+    track(config, "viewable_start", { layer: "viewability" });
     track(config, "waterfall_initial_request", { layer: "vast" });
     startHybridCycle(root, config, state);
   }
 
   function startHybridCycle(root, config, state) {
-    if (!state.active) return;
+    if (!state.active || !state.visible) {
+      state.pendingRestart = true;
+      return;
+    }
     state.running = true;
-    state.currentLayer = "vast";
+    state.currentLayer = "parallel-auction";
     state.nextIndex = 0;
     state.cycleId = (state.cycleId || 0) + 1;
     var cycleId = state.cycleId;
-    var graceMs = Math.max(0, numberValue(config.vastGraceMs, 800));
+    state.auctionAttempt = (state.auctionAttempt || 0) + 1;
 
     setStatus(root, "", true);
-
-    var vastOutcome = fetchVast(config)
-      .then(function (vast) {
-        if (!vast || !vast.mediaUrl) throw new Error("no-valid-vast");
-        warmVastMedia(vast, config);
-        return { ad: vast, error: null };
-      })
-      .catch(function (error) {
-        track(config, "video_no_fill", { layer: "vast", reason: error.message });
-        return { ad: null, error: error };
-      });
-
-    var displayOutcome = fetchPreparedDisplay(config);
-    var grace = new Promise(function (resolve) {
-      window.setTimeout(function () { resolve({ type: "grace" }); }, graceMs);
+    track(config, "auction_cycle_start", {
+      layer: "parallel-auction",
+      reason: "attempt-" + state.auctionAttempt
     });
 
-    Promise.race([
-      vastOutcome.then(function (outcome) { return { type: "vast", outcome: outcome }; }),
-      grace
-    ]).then(function (decision) {
-      if (!state.active || state.cycleId !== cycleId) return;
-
-      function useVast(outcome) {
-        if (!state.active || state.cycleId !== cycleId) return;
-        if (outcome && outcome.ad) {
-          if (outcome.ad.adType === "vpaid-js") {
-            preloadVpaidScript(outcome.ad);
-            displayOutcome.then(function (prepared) {
-              if (!state.active || state.cycleId !== cycleId) return;
-              if (prepared && prepared.ad) {
-                renderPreparedDisplay(root, config, state, prepared, Promise.resolve(outcome), cycleId);
-              } else {
-                renderPreparedVideo(root, config, state, outcome.ad, Promise.resolve(prepared), cycleId);
-              }
-            });
-            return;
-          }
-          renderPreparedVideo(root, config, state, outcome.ad, displayOutcome, cycleId);
-        } else {
-          displayOutcome.then(useDisplay);
-        }
-      }
-
-      function useDisplay(prepared) {
-        if (!state.active || state.cycleId !== cycleId) return;
-        if (prepared && prepared.ad) {
-          renderPreparedDisplay(root, config, state, prepared, vastOutcome, cycleId);
-          return;
-        }
-
-        vastOutcome.then(function (outcome) {
-          if (!state.active || state.cycleId !== cycleId) return;
-          if (outcome.ad) {
-            renderPreparedVideo(root, config, state, outcome.ad, Promise.resolve(prepared), cycleId);
-          } else {
-            runRotationStep(root, config, state, 4);
-          }
-        });
-      }
-
-      if (decision.type === "vast") {
-        useVast(decision.outcome);
+    collectParallelDemand(config, state.auctionBudgetMs).then(function (winner) {
+      if (!state.active || !state.visible || state.cycleId !== cycleId) return;
+      if (!winner || !winner.ad) {
+        scheduleAuctionRetry(root, config, state, cycleId, "parallel-auction-no-fill");
         return;
       }
 
-      Promise.race([
-        vastOutcome.then(function (outcome) { return { type: "vast", value: outcome }; }),
-        displayOutcome.then(function (prepared) { return { type: "display", value: prepared }; })
-      ]).then(function (ready) {
-        if (ready.type === "vast") useVast(ready.value);
-        else useDisplay(ready.value);
+      state.currentLayer = winner.layer;
+      renderAuctionWinner(root, config, state, winner, cycleId, function (filled, reason) {
+        if (!state.active || state.cycleId !== cycleId) return;
+        if (filled) {
+          state.running = false;
+          state.auctionAttempt = 0;
+          track(config, "rotation_layer_filled", {
+            layer: winner.layer,
+            partnerName: winner.ad.sourceName || "",
+            cpm: winner.rank || ""
+          });
+          return;
+        }
+        scheduleAuctionRetry(root, config, state, cycleId, reason || "winner-render-no-fill");
       });
     });
+  }
+
+  function collectParallelDemand(config, budgetMs) {
+    var results = [];
+    var settled = 0;
+    var finished = false;
+    var tasks = [
+      demandTask("vast", 0, fetchVast(config), function (ad) {
+        if (ad && ad.mediaUrl) warmVastMedia(ad, config);
+        return ad;
+      }),
+      demandTask("prebid", 1, fetchPrebidDecision(config)),
+      demandTask("adserver", 2, fetchAdserverDecision(config)),
+      demandTask("ortb", 3, fetchRemnantDecision(config))
+    ];
+
+    return new Promise(function (resolve) {
+      var timer = window.setTimeout(finish, budgetMs);
+
+      function finish() {
+        if (finished) return;
+        finished = true;
+        window.clearTimeout(timer);
+        results.sort(function (a, b) {
+          return b.rank - a.rank || a.priority - b.priority;
+        });
+        resolve(results[0] || null);
+      }
+
+      tasks.forEach(function (task) {
+        task.then(function (result) {
+          if (!finished && result && result.ad) results.push(result);
+        }).catch(function () {}).then(function () {
+          settled += 1;
+          if (settled === tasks.length) finish();
+        });
+      });
+    });
+  }
+
+  function demandTask(layer, priority, promise, prepare) {
+    return promise.then(function (ad) {
+      if (prepare) ad = prepare(ad);
+      if (!ad) throw new Error("empty-" + layer);
+      return {
+        ad: ad,
+        layer: layer,
+        priority: priority,
+        rank: auctionCandidateRank(ad)
+      };
+    }).catch(function () {
+      return null;
+    });
+  }
+
+  function auctionCandidateRank(ad) {
+    if (ad && ad.adType === "adserver-sequence") {
+      return arrayFrom(ad.candidates).reduce(function (highest, candidate) {
+        return Math.max(highest, numberValue(candidate.cpm, 0));
+      }, 0);
+    }
+    return numberValue(ad && (ad.cpm || ad.nbxRankCpm), 0);
+  }
+
+  function renderAuctionWinner(root, config, state, winner, cycleId, done) {
+    var ad = winner.ad;
+    if (winner.layer === "vast") {
+      renderVideo(root, config, ad, function () {
+        if (state.cycleId === cycleId) done(true, "");
+      });
+      return;
+    }
+
+    renderDisplay(root, config, ad, function (result) {
+      if (state.cycleId !== cycleId) return;
+      done(!!(result && result.filled), result && result.reason);
+    });
+
+    if (ad.adType !== "adserver-sequence" && !ad.html && !ad.scriptUrl && !ad.imageUrl) {
+      done(false, "unsupported-auction-winner");
+    }
+  }
+
+  function scheduleAuctionRetry(root, config, state, cycleId, reason) {
+    if (!state.active || state.cycleId !== cycleId) return;
+    state.running = false;
+    track(config, "auction_cycle_no_fill", {
+      layer: "parallel-auction",
+      reason: reason || "no-fill"
+    });
+
+    if (!state.visible) {
+      state.pendingRestart = true;
+      return;
+    }
+    if (state.auctionAttempt >= state.maxAuctionAttempts) {
+      state.auctionAttempt = 0;
+      track(config, "rotation_cycle_complete", { layer: "parallel-auction", reason: "retry-limit" });
+      renderNoAd(root, config);
+      return;
+    }
+
+    clearTimer(state);
+    state.timer = window.setTimeout(function () {
+      if (!state.active || !state.visible || state.cycleId !== cycleId) return;
+      startHybridCycle(root, config, state);
+    }, state.auctionRetryDelayMs);
   }
 
   function fetchPreparedDisplay(config) {
@@ -1273,6 +1342,10 @@
 
       renderDisplay(root, config, candidate, function (result) {
         if (result && result.filled) {
+          if (typeof onDone === "function") {
+            onDone({ filled: true, complete: true, partnerName: result.partnerName || candidate.sourceName });
+            return;
+          }
           root.__nbxSequenceTimer = window.setTimeout(next, holdMs);
           return;
         }
@@ -1546,3 +1619,4 @@
     return String(value || "").replace(/\/+$/, "");
   }
 })();
+
