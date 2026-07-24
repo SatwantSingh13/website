@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>NEXBID Hosted Publisher Tag Test</title>
+
+  <style>
+    :root{
+      --purple:#6d3df5;
+      --green:#0aa66a;
+      --red:#d9434e;
+      --amber:#a56d00;
+      --ink:#172033;
+      --muted:#667085;
+      --line:#dfe4ec;
+      --page:#f7f8fb;
+      --white:#ffffff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%,rgba(109,61,245,.10),transparent 28rem),
+        radial-gradient(circle at 100% 15%,rgba(10,166,106,.08),transparent 28rem),
+        var(--page);
+    }
+    button{font:inherit}
+    .wrap{max-width:1260px;margin:0 auto;padding:24px}
+    .hero,.card{
+      background:var(--white);
+      border:1px solid var(--line);
+      box-shadow:0 14px 38px rgba(30,37,64,.08);
+    }
+    .hero{
+      border-radius:22px;
+      padding:21px 24px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:18px;
+      margin-bottom:18px;
+    }
+    .brand{display:flex;align-items:center;gap:14px}
+    .mark{
+      width:50px;height:50px;border-radius:15px;
+      display:grid;place-items:center;
+      color:#fff;font-size:24px;font-weight:900;
+      background:linear-gradient(135deg,var(--purple),var(--green));
+    }
+    h1{margin:0;font-size:clamp(22px,3vw,34px);letter-spacing:-.035em}
+    .sub{margin-top:5px;color:var(--muted);font-size:14px}
+    .badge{
+      background:#ecfbf4;color:#087249;
+      border-radius:999px;padding:10px 13px;
+      font-weight:850;white-space:nowrap;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(330px,.82fr) minmax(480px,1.18fr);
+      gap:18px;
+    }
+    .card{border-radius:20px;overflow:hidden}
+    .head{
+      padding:16px 19px;
+      border-bottom:1px solid var(--line);
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .head h2{font-size:17px;margin:0}
+    .body{padding:19px}
+    .kv{
+      display:grid;
+      grid-template-columns:145px 1fr;
+      gap:10px;
+      border:1px solid #e5e9ef;
+      border-radius:12px;
+      padding:11px 12px;
+      background:#fbfcfe;
+      margin-bottom:9px;
+    }
+    .kv span{font-size:12px;color:var(--muted);font-weight:800}
+    .kv strong{font-size:13px;word-break:break-word}
+    .code{
+      margin-top:13px;
+      border-radius:13px;
+      background:#111827;
+      color:#e5e7eb;
+      padding:13px;
+      font:12px/1.55 Consolas,Monaco,monospace;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .status-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:9px;
+      margin-top:14px;
+    }
+    .status{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:11px;
+      background:#fbfcfe;
+      min-height:68px;
+    }
+    .status small{
+      display:block;color:var(--muted);
+      font-size:12px;font-weight:800;margin-bottom:5px;
+    }
+    .status strong{font-size:13px}
+    .waiting strong{color:#7d8798}
+    .ok{background:#ecfbf4;border-color:#b7ead3}.ok strong{color:#087249}
+    .warn{background:#fff9e8;border-color:#efd99d}.warn strong{color:#8d6100}
+    .bad{background:#fff2f3;border-color:#efbdc1}.bad strong{color:#b62d38}
+    .verdict{
+      margin-top:14px;
+      padding:13px;
+      border:1px solid #d9cffd;
+      border-radius:13px;
+      background:#f3f0ff;
+    }
+    .verdict h3{font-size:15px;margin:0 0 6px}
+    .verdict p{font-size:13px;color:#536075;line-height:1.55;margin:0}
+    .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+    .btn{
+      border:0;border-radius:10px;
+      padding:10px 13px;font-weight:850;cursor:pointer;
+    }
+    .primary{background:var(--purple);color:#fff}
+    .neutral{background:#eef1f5;color:var(--ink)}
+    .stage{
+      min-height:430px;
+      display:grid;
+      place-items:center;
+      padding:34px;
+      border:1px dashed #bbc5d3;
+      border-radius:15px;
+      background:
+        repeating-linear-gradient(45deg,#fff,#fff 13px,#fafbfc 13px,#fafbfc 26px);
+    }
+    .slot-label{
+      text-align:center;
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      margin-bottom:10px;
+    }
+    #nexbanner-slot{
+      width:300px;
+      min-height:250px;
+      border:1px solid #cbd3df;
+      background:#fff;
+      position:relative;
+      overflow:visible;
+    }
+    #slot-placeholder{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      color:#8b94a4;
+      font-size:13px;
+      line-height:1.5;
+      padding:22px;
+      pointer-events:none;
+    }
+    .tabs{
+      display:flex;
+      border-top:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+      padding-left:14px;
+    }
+    .tab{
+      border:0;background:transparent;
+      padding:12px;
+      font-weight:850;color:var(--muted);
+      cursor:pointer;border-bottom:2px solid transparent;
+    }
+    .tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+    .panel{display:none}.panel.active{display:block}
+    #timeline{
+      max-height:390px;
+      overflow:auto;
+      font:12px/1.45 Consolas,Monaco,monospace;
+    }
+    .entry{
+      display:grid;
+      grid-template-columns:78px 175px 1fr;
+      gap:9px;
+      padding:9px 16px;
+      border-bottom:1px solid #edf0f4;
+    }
+    .entry:hover{background:#fafbfc}
+    .time{color:#8b94a4}
+    .event{font-weight:900;color:var(--purple);word-break:break-word}
+    .detail{white-space:pre-wrap;word-break:break-word;color:#354057}
+    #resources{
+      padding:14px;
+      max-height:390px;
+      overflow:auto;
+    }
+    .resource{
+      border:1px solid #e4e8ef;
+      border-radius:10px;
+      padding:10px;
+      margin-bottom:8px;
+    }
+    .resource b{display:block;font-size:12px;margin-bottom:4px}
+    .resource div{
+      font:11px/1.4 Consolas,Monaco,monospace;
+      color:#515c70;word-break:break-all;
+    }
+    .note{
+      font-size:12px;color:var(--muted);
+      line-height:1.55;margin-top:12px;
+    }
+    .footer{text-align:center;color:var(--muted);font-size:12px;padding:17px}
+    @media(max-width:950px){.grid{grid-template-columns:1fr}}
+    @media(max-width:560px){
+      .wrap{padding:12px}.badge{display:none}
+      .status-grid{grid-template-columns:1fr}
+      .entry{grid-template-columns:70px 1fr}
+      .detail{grid-column:1/-1}
+    }
+  </style>
+
+  <!--
+    ============================================================
+    NEXBID PUBLISHER TEST INSTRUMENTATION
+    Keep this block above the NexBanner tag.
+    ============================================================
+  -->
+  <script>
+    window.NXB_TEST = {
+      startedAt: performance.now(),
+      events: [],
+      resources: new Map(),
+      scriptState: "pending",
+      downstreamActions: 0,
+      visibleContent: false,
+      errors: [],
+      completed: false,
+      mutationCount: 0
+    };
+
+    (function (T) {
+      T.record = function (name, detail) {
+        const event = {
+          timestamp: new Date().toISOString(),
+          elapsedMs: Math.round(performance.now() - T.startedAt),
+          name: name,
+          detail: detail || {}
+        };
+
+        T.events.push(event);
+
+        if ([
+          "FETCH_REQUEST",
+          "XHR_REQUEST",
+          "CHILD_SCRIPT",
+          "IFRAME_CREATED",
+          "IMAGE_CREATED"
+        ].includes(name)) {
+          T.downstreamActions += 1;
+        }
+
+        if (window.renderTestEvent) {
+          window.renderTestEvent(event);
+        }
+
+        if (window.updateTestUi) {
+          window.updateTestUi();
+        }
+      };
+
+      const originalFetch = window.fetch;
+
+      if (originalFetch) {
+        window.fetch = function (input, init) {
+          const url =
+            typeof input === "string"
+              ? input
+              : (input && input.url) || String(input);
+
+          T.record("FETCH_REQUEST", {
+            url: url,
+            method: (init && init.method) || "GET"
+          });
+
+          return originalFetch.apply(this, arguments)
+            .then(function (response) {
+              T.record("FETCH_RESPONSE", {
+                url: url,
+                status: response.status,
+                ok: response.ok
+              });
+              return response;
+            })
+            .catch(function (error) {
+              T.record("FETCH_ERROR", {
+                url: url,
+                error: String(error)
+              });
+              throw error;
+            });
+        };
+      }
+
+      const XHR = window.XMLHttpRequest;
+
+      if (XHR) {
+        const originalOpen = XHR.prototype.open;
+        const originalSend = XHR.prototype.send;
+
+        XHR.prototype.open = function (method, url) {
+          this.__nxbMeta = {
+            method: method,
+            url: String(url)
+          };
+          return originalOpen.apply(this, arguments);
+        };
+
+        XHR.prototype.send = function () {
+          const meta = this.__nxbMeta || {};
+
+          T.record("XHR_REQUEST", meta);
+
+          this.addEventListener("load", function () {
+            T.record("XHR_RESPONSE", {
+              method: meta.method,
+              url: meta.url,
+              status: this.status
+            });
+          });
+
+          this.addEventListener("error", function () {
+            T.record("XHR_ERROR", meta);
+          });
+
+          return originalSend.apply(this, arguments);
+        };
+      }
+
+      const originalAppendChild = Element.prototype.appendChild;
+
+      Element.prototype.appendChild = function (node) {
+        try {
+          if (node && node.tagName === "SCRIPT" && node.src) {
+            T.record("CHILD_SCRIPT", { url: node.src });
+          }
+
+          if (node && node.tagName === "IFRAME") {
+            T.record("IFRAME_CREATED", {
+              src: node.src || "",
+              width: node.width || "",
+              height: node.height || ""
+            });
+          }
+
+          if (node && node.tagName === "IMG" && node.src) {
+            T.record("IMAGE_CREATED", { url: node.src });
+          }
+        } catch (error) {}
+
+        return originalAppendChild.call(this, node);
+      };
+
+      window.addEventListener("error", function (event) {
+        const error = {
+          message: event.message,
+          source: event.filename,
+          line: event.lineno,
+          column: event.colno
+        };
+
+        T.errors.push(error);
+        T.record("WINDOW_ERROR", error);
+      });
+
+      window.addEventListener("unhandledrejection", function (event) {
+        const error = {
+          reason: String(event.reason)
+        };
+
+        T.errors.push(error);
+        T.record("UNHANDLED_REJECTION", error);
+      });
+    })(window.NXB_TEST);
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="brand">
+        <div class="mark">N</div>
+        <div>
+          <h1>NexBanner Hosted Publisher Test</h1>
+          <div class="sub">
+            NEXBID · Next Generation Bidding · Creating Value in Every Bid.
+          </div>
+        </div>
+      </div>
+
+      <div class="badge">Real hosted URL test</div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="head">
+          <h2>Test configuration</h2>
+        </div>
+
+        <div class="body">
+          <div class="kv">
+            <span>Page URL</span>
+            <strong id="page-url">Loading…</strong>
+          </div>
+
+          <div class="kv">
+            <span>Page origin</span>
+            <strong id="page-origin">Loading…</strong>
+          </div>
+
+          <div class="kv">
+            <span>GAM line item</span>
+            <strong>Price Priority</strong>
+          </div>
+
+          <div class="kv">
+            <span>Configured floor</span>
+            <strong>₹10 CPM — reference label only</strong>
+          </div>
+
+          <div class="kv">
+            <span>Ad size</span>
+            <strong>300 × 250</strong>
+          </div>
+
+          <div class="kv">
+            <span>Config ID</span>
+            <strong>moneycontrol.com</strong>
+          </div>
+
+          <div class="code">&lt;script
+  src="https://nexbid.uk/nbx/v1.js?v=20260713-5"
+  data-config-id="moneycontrol.com"&gt;
+&lt;/script&gt;</div>
+
+          <div class="status-grid">
+            <div class="status waiting" id="status-main">
+              <small>Main NexBanner script</small>
+              <strong>Waiting</strong>
+            </div>
+
+            <div class="status waiting" id="status-demand">
+              <small>Downstream activity</small>
+              <strong>Waiting</strong>
+            </div>
+
+            <div class="status waiting" id="status-render">
+              <small>Visible ad render</small>
+              <strong>Waiting</strong>
+            </div>
+
+            <div class="status waiting" id="status-errors">
+              <small>JavaScript errors</small>
+              <strong>Waiting</strong>
+            </div>
+          </div>
+
+          <div class="verdict" id="verdict">
+            <h3>Test starting</h3>
+            <p>The hosted page is preparing to execute the NexBanner tag.</p>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" onclick="location.reload()">
+              Run test again
+            </button>
+
+            <button class="btn neutral" id="copy-report">
+              Copy report
+            </button>
+
+            <button class="btn neutral" id="download-report">
+              Download JSON
+            </button>
+          </div>
+
+          <div class="note">
+            This page does not generate any bid, banner, video, VAST response,
+            or mock demand. Everything shown in the slot must come from the
+            tag placed below.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="head">
+          <h2>300 × 250 publisher placement</h2>
+        </div>
+
+        <div class="body">
+          <div class="stage">
+            <div>
+              <div class="slot-label">
+                Hosted publisher creative area
+              </div>
+
+              <div id="nexbanner-slot">
+                <div id="slot-placeholder">
+                  The NexBanner tag will execute here.<br>
+                  Any rendered ad must come from its real demand.
+                </div>
+
+                <script>
+                  (function (T) {
+                    const slot = document.getElementById("nexbanner-slot");
+
+                    T.record("PUBLISHER_SLOT_READY", {
+                      width: 300,
+                      height: 250,
+                      pageUrl: location.href,
+                      origin: location.origin
+                    });
+
+                    function checkVisibleContent() {
+                      const mediaElements = Array.from(
+                        slot.querySelectorAll(
+                          "iframe,img,video,canvas,object,embed"
+                        )
+                      );
+
+                      const visibleMedia = mediaElements.some(function (element) {
+                        const rect = element.getBoundingClientRect();
+                        return rect.width > 2 && rect.height > 2;
+                      });
+
+                      const meaningfulElement = Array.from(slot.children).some(
+                        function (element) {
+                          if (
+                            element.id === "slot-placeholder" ||
+                            element.tagName === "SCRIPT"
+                          ) {
+                            return false;
+                          }
+
+                          const rect = element.getBoundingClientRect();
+                          return rect.width > 2 && rect.height > 2;
+                        }
+                      );
+
+                      if (
+                        (visibleMedia || meaningfulElement) &&
+                        !T.visibleContent
+                      ) {
+                        T.visibleContent = true;
+
+                        T.record("VISIBLE_CONTENT_DETECTED", {
+                          visibleMedia: visibleMedia,
+                          meaningfulElement: meaningfulElement
+                        });
+                      }
+                    }
+
+                    const observer = new MutationObserver(function (mutations) {
+                      T.mutationCount += mutations.length;
+
+                      T.record("DOM_MUTATION", {
+                        mutationCount: mutations.length
+                      });
+
+                      checkVisibleContent();
+                    });
+
+                    observer.observe(slot, {
+                      childList: true,
+                      subtree: true,
+                      attributes: true,
+                      characterData: true
+                    });
+
+                    T.checkVisibleContent = checkVisibleContent;
+                  })(window.NXB_TEST);
+                </script>
+
+                <!-- ===================================================== -->
+                <!-- PASTE OR REPLACE YOUR NEXBANNER TAG BELOW THIS LINE   -->
+                <!-- ===================================================== -->
+
+                <script
+                  src="https://nexbid.uk/nbx/v1.js?v=20260713-5"
+                  data-config-id="moneycontrol.com"
+                  onload="
+                    window.NXB_TEST.scriptState='loaded';
+                    window.NXB_TEST.record('MAIN_SCRIPT_LOADED',{
+                      src:this.src
+                    });
+                  "
+                  onerror="
+                    window.NXB_TEST.scriptState='error';
+                    window.NXB_TEST.record('MAIN_SCRIPT_LOAD_ERROR',{
+                      src:this.src
+                    });
+                  ">
+                </script>
+
+                <!-- ===================================================== -->
+                <!-- END OF NEXBANNER TAG                                  -->
+                <!-- ===================================================== -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" data-panel="timeline">
+            Timeline
+          </button>
+
+          <button class="tab" data-panel="resources">
+            Resources
+          </button>
+        </div>
+
+        <div class="panel active" id="timeline"></div>
+        <div class="panel" id="resources">
+          Waiting for browser resource entries…
+        </div>
+      </section>
+    </main>
+
+    <div class="footer">
+      NEXBID hosted publisher-side diagnostic environment
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const T = window.NXB_TEST;
+
+      document.getElementById("page-url").textContent = location.href;
+      document.getElementById("page-origin").textContent = location.origin;
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function setStatus(id, kind, text) {
+        const element = document.getElementById(id);
+        element.className = "status " + kind;
+        element.querySelector("strong").textContent = text;
+      }
+
+      window.renderTestEvent = function (event) {
+        const row = document.createElement("div");
+        row.className = "entry";
+
+        row.innerHTML =
+          '<div class="time">+' +
+          event.elapsedMs +
+          ' ms</div>' +
+          '<div class="event">' +
+          escapeHtml(event.name) +
+          '</div>' +
+          '<div class="detail">' +
+          escapeHtml(JSON.stringify(event.detail, null, 2)) +
+          "</div>";
+
+        document.getElementById("timeline").prepend(row);
+      };
+
+      function collectResources() {
+        const entries = performance.getEntriesByType("resource");
+
+        entries.forEach(function (entry) {
+          T.resources.set(entry.name, {
+            name: entry.name,
+            initiatorType: entry.initiatorType,
+            durationMs: Math.round(entry.duration),
+            transferSize: entry.transferSize || 0
+          });
+        });
+
+        const resources = Array.from(T.resources.values());
+        const panel = document.getElementById("resources");
+
+        if (!resources.length) {
+          panel.innerHTML = "No browser resource entries recorded.";
+          return;
+        }
+
+        panel.innerHTML = resources
+          .map(function (resource) {
+            return (
+              '<div class="resource">' +
+              "<b>" +
+              escapeHtml(resource.initiatorType || "resource") +
+              " · " +
+              resource.durationMs +
+              " ms</b>" +
+              "<div>" +
+              escapeHtml(resource.name) +
+              "</div>" +
+              "</div>"
+            );
+          })
+          .join("");
+      }
+
+      window.updateTestUi = function () {
+        if (T.scriptState === "loaded") {
+          setStatus("status-main", "ok", "Loaded successfully");
+        } else if (T.scriptState === "error") {
+          setStatus("status-main", "bad", "Load failed");
+        } else {
+          setStatus("status-main", "waiting", "Loading");
+        }
+
+        if (T.downstreamActions > 0) {
+          setStatus(
+            "status-demand",
+            "ok",
+            T.downstreamActions + " action(s) detected"
+          );
+        } else if (T.completed) {
+          setStatus("status-demand", "warn", "No downstream activity");
+        } else {
+          setStatus("status-demand", "waiting", "Waiting");
+        }
+
+        if (T.visibleContent) {
+          setStatus("status-render", "ok", "Visible content detected");
+          document.getElementById("slot-placeholder").style.display = "none";
+        } else if (T.completed) {
+          setStatus("status-render", "warn", "No visible ad detected");
+        } else {
+          setStatus("status-render", "waiting", "Waiting");
+        }
+
+        if (T.errors.length > 0) {
+          setStatus(
+            "status-errors",
+            "bad",
+            T.errors.length + " error(s)"
+          );
+        } else {
+          setStatus("status-errors", "ok", "No page errors");
+        }
+
+        const verdict = document.getElementById("verdict");
+        const title = verdict.querySelector("h3");
+        const text = verdict.querySelector("p");
+
+        if (!T.completed) {
+          title.textContent = "Testing in progress";
+          text.textContent =
+            "Waiting for the NexBanner script, downstream calls, and ad rendering.";
+        } else if (T.scriptState === "error") {
+          title.textContent = "Outcome: main loader failed";
+          text.textContent =
+            "The hosted page could not load the NexBanner JavaScript file.";
+        } else if (T.visibleContent) {
+          title.textContent = "Outcome: visible content rendered";
+          text.textContent =
+            "The tag loaded and visible content appeared in the publisher placement.";
+        } else if (
+          T.scriptState === "loaded" &&
+          T.downstreamActions > 0
+        ) {
+          title.textContent =
+            "Outcome: tag active, but no visible fill";
+          text.textContent =
+            "The loader downloaded and initiated activity, but no visible ad appeared during the observation window.";
+        } else if (T.scriptState === "loaded") {
+          title.textContent =
+            "Outcome: loader loaded, no demand activity detected";
+          text.textContent =
+            "The JavaScript file downloaded, but no additional tag activity or ad render was detected.";
+        } else {
+          title.textContent = "Outcome: inconclusive";
+          text.textContent =
+            "The loader remained pending. Check Chrome DevTools Network and Console.";
+        }
+      };
+
+      function buildReport() {
+        return {
+          generatedAt: new Date().toISOString(),
+          page: {
+            url: location.href,
+            origin: location.origin,
+            userAgent: navigator.userAgent
+          },
+          placement: {
+            lineItemType: "Price Priority",
+            floorCpmInr: 10,
+            currency: "INR",
+            size: [300, 250],
+            configId: "moneycontrol.com"
+          },
+          tag: {
+            src: "https://nexbid.uk/nbx/v1.js?v=20260713-5",
+            dataConfigId: "moneycontrol.com"
+          },
+          outcome: {
+            scriptState: T.scriptState,
+            downstreamActions: T.downstreamActions,
+            visibleContent: T.visibleContent,
+            errorCount: T.errors.length,
+            mutationCount: T.mutationCount,
+            completed: T.completed
+          },
+          resources: Array.from(T.resources.values()),
+          errors: T.errors,
+          events: T.events
+        };
+      }
+
+      try {
+        const observer = new PerformanceObserver(function () {
+          collectResources();
+          window.updateTestUi();
+        });
+
+        observer.observe({ entryTypes: ["resource"] });
+      } catch (error) {}
+
+      setInterval(function () {
+        collectResources();
+
+        if (T.checkVisibleContent) {
+          T.checkVisibleContent();
+        }
+
+        window.updateTestUi();
+      }, 1000);
+
+      setTimeout(function () {
+        T.completed = true;
+
+        collectResources();
+
+        if (T.checkVisibleContent) {
+          T.checkVisibleContent();
+        }
+
+        T.record("TEST_COMPLETED", {
+          scriptState: T.scriptState,
+          downstreamActions: T.downstreamActions,
+          visibleContent: T.visibleContent,
+          errorCount: T.errors.length,
+          resourceCount: T.resources.size
+        });
+
+        window.updateTestUi();
+      }, 20000);
+
+      document.getElementById("copy-report").addEventListener(
+        "click",
+        async function () {
+          await navigator.clipboard.writeText(
+            JSON.stringify(buildReport(), null, 2)
+          );
+
+          alert("Test report copied.");
+        }
+      );
+
+      document.getElementById("download-report").addEventListener(
+        "click",
+        function () {
+          const report = JSON.stringify(buildReport(), null, 2);
+          const blob = new Blob([report], {
+            type: "application/json"
+          });
+
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "nexbanner-hosted-test-report.json";
+          link.click();
+
+          setTimeout(function () {
+            URL.revokeObjectURL(link.href);
+          }, 1000);
+        }
+      );
+
+      document.querySelectorAll(".tab").forEach(function (button) {
+        button.addEventListener("click", function () {
+          document.querySelectorAll(".tab").forEach(function (item) {
+            item.classList.remove("active");
+          });
+
+          document.querySelectorAll(".panel").forEach(function (panel) {
+            panel.classList.remove("active");
+          });
+
+          button.classList.add("active");
+          document
+            .getElementById(button.dataset.panel)
+            .classList.add("active");
+        });
+      });
+
+      T.record("DIAGNOSTIC_UI_READY", {
+        pageUrl: location.href,
+        origin: location.origin
+      });
+
+      window.updateTestUi();
+    })();
+  </script>
+</body>
+</html>
