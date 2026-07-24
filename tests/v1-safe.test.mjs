@@ -13,6 +13,7 @@ import { isPrivateIp, resolveVast, validateVastUrl } from "../functions/api/v1/v
 const player = await readFile(new URL("../nbx/v1-price-priority-safe-player.mjs", import.meta.url), "utf8");
 const loader = await readFile(new URL("../nbx/v1-price-priority-safe.js", import.meta.url), "utf8");
 const legacyLoader = await readFile(new URL("../nbx/v1.js", import.meta.url), "utf8");
+const immutableLegacyLoader = await readFile(new URL("../nbx/v1-legacy-20260713-5.js", import.meta.url), "utf8");
 const configGet = await readFile(new URL("../functions/api/v1/config/[id].js", import.meta.url), "utf8");
 const configPost = await readFile(new URL("../functions/api/v1/config/index.js", import.meta.url), "utf8");
 const track = await readFile(new URL("../functions/api/v1/track.js", import.meta.url), "utf8");
@@ -203,9 +204,10 @@ test("existing tags without new attributes retain safe loader defaults", () => {
 });
 
 test("legacy v1.js tag routes to the safe player with compatibility VAST fallback", () => {
-  assert.match(legacyLoader, /v1-price-priority-safe-player\.mjs/);
-  assert.match(legacyLoader, /legacyBrowserVastFallback:\s*boolean\(data\.legacyBrowserVastFallback,\s*true\)/);
-  assert.match(legacyLoader, /viewabilityThreshold:\s*decimal\(data\.viewabilityThreshold,\s*0\.5\)/);
+  assert.match(legacyLoader, /v1-legacy-20260713-5\.js/);
+  assert.match(immutableLegacyLoader, /v1-price-priority-safe-player\.mjs/);
+  assert.match(immutableLegacyLoader, /legacyBrowserVastFallback:\s*boolean\(data\.legacyBrowserVastFallback,\s*true\)/);
+  assert.match(immutableLegacyLoader, /viewabilityThreshold:\s*decimal\(data\.viewabilityThreshold,\s*0\.5\)/);
 });
 
 test("runtime GAM macros override stored literal macros", () => {
@@ -221,7 +223,7 @@ test("browser VAST fetching is compatibility fallback only", () => {
 test("config GET uses ETag revalidation and controlled cache lifetime", () => {
   assert.match(configGet, /if-none-match/i);
   assert.match(configGet, /status:\s*304/);
-  assert.match(configGet, /s-maxage=60/);
+  assert.match(configGet, /s-maxage=300/);
   assert.doesNotMatch(configGet, /Math\.random/);
 });
 

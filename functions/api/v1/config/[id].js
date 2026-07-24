@@ -39,7 +39,7 @@ export async function onRequestGet(context) {
   const response = new Response(JSON.stringify(config), {
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "cache-control": "public, max-age=30, s-maxage=60, stale-while-revalidate=120",
+      "cache-control": "public, max-age=30, s-maxage=300, stale-while-revalidate=120",
       etag,
       "x-nexbanner-cache": "miss",
       ...corsHeaders(),
