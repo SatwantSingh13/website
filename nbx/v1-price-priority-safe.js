@@ -26,7 +26,7 @@
     viewabilityWaitTimeoutMs: number(data.viewabilityWaitTimeoutMs, 15000),
     auctionOnViewabilityTimeout: boolean(data.auctionOnViewabilityTimeout, false),
     serverSideVastResolution: boolean(data.serverSideVastResolution, true),
-    legacyBrowserVastFallback: boolean(data.legacyBrowserVastFallback, true),
+    legacyBrowserVastFallback: boolean(data.legacyBrowserVastFallback, false),
     gamLineItemCpm: decimal(data.gamLineItemCpm, 0),
     minimumInternalCpm: decimal(data.minimumInternalCpm, 0),
     currency: data.currency || "INR",

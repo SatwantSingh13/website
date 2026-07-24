@@ -65,6 +65,67 @@
 
       <section class="panel">
         <div class="section-title">
+          <p>Production Safety</p>
+          <h2>GAM Price Priority – Production Safe</h2>
+        </div>
+        <div class="actions">
+          <button id="applySafePreset">Apply Safe Preset</button>
+        </div>
+        <div class="form-grid">
+          <label>Configuration ID
+            <input id="safeConfigId" placeholder="moneycontrol.com--article-mid--300x250--v1">
+          </label>
+          <label>Config Version
+            <input id="configVersion" value="1" readonly>
+          </label>
+          <label>GAM Line-item CPM
+            <input id="gamLineItemCpm" value="10" inputmode="decimal">
+          </label>
+          <label>Minimum Internal CPM
+            <input id="minimumInternalCpm" value="12" inputmode="decimal">
+          </label>
+          <label>Currency
+            <input id="currency" value="INR" maxlength="3">
+          </label>
+          <label>Price Mismatch Tolerance
+            <input id="priceMismatchTolerance" value="0" inputmode="decimal">
+          </label>
+          <label>Viewability Threshold
+            <input id="viewabilityThreshold" value="0.5" inputmode="decimal">
+          </label>
+          <label>Continuous Viewability MS
+            <input id="viewabilityTimeMs" value="1000" inputmode="numeric">
+          </label>
+          <label>Viewability Wait Timeout MS
+            <input id="viewabilityWaitTimeoutMs" value="15000" inputmode="numeric">
+          </label>
+          <label>Passback Timeout MS
+            <input id="passbackTimeoutMs" value="2000" inputmode="numeric">
+          </label>
+          <label>Passback Script URL
+            <input id="passbackScriptUrl" placeholder="https://publisher.example/passback.js">
+          </label>
+          <label>Legacy Config ID
+            <input id="legacyConfigId" placeholder="moneycontrol.com">
+          </label>
+          <label class="wide-field">Passback HTML
+            <textarea id="passbackHtml" spellcheck="false" placeholder="Publisher GAM passback HTML"></textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <label><input id="enablePassback" type="checkbox" checked> Enable passback</label>
+          <label><input id="collapseOnPassbackFailure" type="checkbox"> Collapse after passback failure</label>
+          <label><input id="rejectBelowGamRate" type="checkbox" checked> Reject below protected rate</label>
+          <label><input id="allowVpaid" type="checkbox"> Allow VPAID (not recommended)</label>
+          <button id="duplicateLegacyConfig" class="secondary">Load Legacy and Save as Placement Config</button>
+        </div>
+        <div class="notice" id="priceWarning" aria-live="polite"></div>
+        <p class="version-copy">Maximum auction cycles: <strong>1</strong>. Internal refresh: <strong>disabled</strong>. Server-side VAST resolver: <strong>enabled</strong>. True request-level dynamic GAM competition requires NexBid Prebid or GAM price buckets.</p>
+        <p class="version-copy"><strong>GAM macros:</strong> use <code>data-gam-click="%%CLICK_URL_UNESC%%"</code> and <code>data-gam-cachebuster="%%CACHEBUSTER%%"</code>.</p>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
           <p>Demand</p>
           <h2>Add Demand Endpoint</h2>
         </div>
@@ -347,7 +408,7 @@
     </main>
 
    
-    <script src="./app.js?v=exact-report-1"></script>
+    <script src="./app.js?v=price-priority-safe-1"></script>
   </body>
 </html>
 

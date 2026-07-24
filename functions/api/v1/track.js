@@ -18,22 +18,40 @@ export async function onRequestGet(context) {
     partnerName: url.searchParams.get("partner_name") || "",
     cpm: url.searchParams.get("cpm") || "",
     reason: url.searchParams.get("reason") || "",
+    terminalState: url.searchParams.get("terminal_state") || "",
+    auctionLatencyMs: url.searchParams.get("auction_latency_ms") || "",
+    timeToFirstRenderMs: url.searchParams.get("time_to_first_render_ms") || "",
+    gamCpm: url.searchParams.get("gam_cpm") || "",
+    internalCpm: url.searchParams.get("internal_cpm") || "",
   };
 
   const store = eventStore(context.env);
   if (store && store.put) {
+    const duplicate = await isDuplicateDeliveryEvent(store, event);
     const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    await Promise.all([
-      store.put(key, JSON.stringify(event), { expirationTtl: 60 * 60 * 24 * 30 }),
-      writeExactMarkers(store, event),
-      updateCounters(store, event),
-    ]);
+    if (!duplicate) {
+      await Promise.all([
+        store.put(key, JSON.stringify(event), { expirationTtl: 60 * 60 * 24 * 30 }),
+        writeExactMarkers(store, event),
+        updateCounters(store, event),
+      ]);
+    }
   }
 
   const pixel = Uint8Array.from([71,73,70,56,57,97,1,0,1,0,128,0,0,255,255,255,0,0,0,33,249,4,1,0,0,0,0,44,0,0,0,0,1,0,1,0,0,2,2,68,1,0,59]);
   return new Response(pixel, {
     headers: { "content-type": "image/gif", "cache-control": "no-store", ...corsHeaders() },
   });
+}
+
+async function isDuplicateDeliveryEvent(store, event) {
+  if (!event.requestId || !["ad_request", "request_filled", "impression", "terminal_state"].includes(event.event)) return false;
+  const date = event.ts.slice(0, 10);
+  const key = `dedupe:${date}:${encodeURIComponent(event.configId || "unknown")}:${encodeURIComponent(event.requestId)}:${event.event}`;
+  const existing = await store.get(key);
+  if (existing) return true;
+  await store.put(key, "1", { expirationTtl: 60 * 60 * 24 * 30 });
+  return false;
 }
 
 async function writeExactMarkers(store, event) {
@@ -50,6 +68,11 @@ async function writeExactMarkers(store, event) {
       cpm: Number(event.cpm || 0) || 0,
       event: event.event || "",
       reason: event.reason || "",
+      terminalState: event.terminalState || "",
+      auctionLatencyMs: Number(event.auctionLatencyMs || 0) || 0,
+      timeToFirstRenderMs: Number(event.timeToFirstRenderMs || 0) || 0,
+      gamCpm: Number(event.gamCpm || 0) || 0,
+      internalCpm: Number(event.internalCpm || 0) || 0,
     },
   };
 
@@ -58,8 +81,9 @@ async function writeExactMarkers(store, event) {
   } else if (event.event === "request_filled") {
     await store.put(`exact:${date}:${scope}:filled:${request}`, "1", options);
   } else if (event.event === "impression") {
-    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    await store.put(`exact:${date}:${scope}:delivery:${suffix}`, "1", options);
+    await store.put(`exact:${date}:${scope}:delivery:${request}`, "1", options);
+  } else if (event.event === "terminal_state") {
+    await store.put(`exact:${date}:${scope}:terminal:${request}`, "1", options);
   } else if (event.event === "partner_request" && event.partnerName) {
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     await store.put(`exact:${date}:${scope}:partner-request:${suffix}`, "1", options);
@@ -108,6 +132,9 @@ async function incrementSummary(store, key, event) {
     partners: {},
     versions: {},
     updatedAt: "",
+    terminalStates: {},
+    totalAuctionLatencyMs: 0,
+    totalTimeToFirstRenderMs: 0,
   };
 
   const layer = event.layer || "unknown";
@@ -160,6 +187,15 @@ async function incrementSummary(store, key, event) {
     if (partnerName) summary.partners[partnerName].errors += 1;
   }
   if (event.event === "rotation_cycle_complete") summary.cycles += 1;
+  if (event.event === "auction_started") summary.cycles += 1;
+  if (event.event === "terminal_state" && event.terminalState) {
+    summary.terminalStates = summary.terminalStates || {};
+    summary.terminalStates[event.terminalState] = (summary.terminalStates[event.terminalState] || 0) + 1;
+  }
+  const auctionLatencyMs = Number(event.auctionLatencyMs || 0);
+  const timeToFirstRenderMs = Number(event.timeToFirstRenderMs || 0);
+  if (auctionLatencyMs > 0) summary.totalAuctionLatencyMs = (summary.totalAuctionLatencyMs || 0) + auctionLatencyMs;
+  if (timeToFirstRenderMs > 0) summary.totalTimeToFirstRenderMs = (summary.totalTimeToFirstRenderMs || 0) + timeToFirstRenderMs;
   if (event.event.indexOf("request") >= 0 || event.event === "viewable_start") summary.layers[layer].requests += 1;
 
   const cpm = Number(event.cpm || 0);
