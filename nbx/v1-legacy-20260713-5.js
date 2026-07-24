@@ -1,3 +1,4 @@
+/*! NexBanner Version 3 release note — legacy rollback loader for v=20260713-5; not the Version 3 player. */
 (function () {
   "use strict";
 

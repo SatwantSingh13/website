@@ -1,3 +1,4 @@
+/*! NexBanner Version 3 — commercial unified-auction loader, release v=20260724-6. */
 (function () {
   "use strict";
 
