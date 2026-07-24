@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>NEXBID GAM & Tag QA Environment</title>
+
+  <!-- Official Google Publisher Tag library -->
+  <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>
+
+  <style>
+    :root{
+      --purple:#6d3df5;--green:#0aa66a;--red:#d9434e;--amber:#a56d00;
+      --ink:#172033;--muted:#667085;--line:#dfe4ec;--page:#f7f8fb;--white:#fff;
+      --soft-purple:#f3f0ff;--soft-green:#ecfbf4;--soft-red:#fff2f3;--soft-amber:#fff9e8;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:
+        radial-gradient(circle at 8% 0%,rgba(109,61,245,.10),transparent 30rem),
+        radial-gradient(circle at 100% 12%,rgba(10,166,106,.08),transparent 28rem),
+        var(--page);
+    }
+    button,input,select,textarea{font:inherit}
+    .shell{max-width:1480px;margin:0 auto;padding:22px}
+    .hero,.card{background:var(--white);border:1px solid var(--line)}
+    .hero{
+      border-radius:22px;padding:20px 23px;margin-bottom:16px;
+      display:flex;justify-content:space-between;align-items:center;gap:16px;
+      box-shadow:0 13px 34px rgba(30,37,64,.07)
+    }
+    .brand{display:flex;align-items:center;gap:13px}
+    .mark{
+      width:50px;height:50px;border-radius:15px;display:grid;place-items:center;
+      color:#fff;font-weight:900;font-size:24px;background:linear-gradient(135deg,var(--purple),var(--green))
+    }
+    h1{margin:0;font-size:clamp(23px,3vw,35px);letter-spacing:-.04em}
+    .subtitle{font-size:14px;color:var(--muted);margin-top:4px}
+    .live-badge{padding:9px 12px;border-radius:999px;background:var(--soft-green);color:#087249;font-weight:850;white-space:nowrap}
+    .top-note{
+      border:1px solid #d8cff9;background:var(--soft-purple);border-radius:14px;
+      padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.55;color:#4e5870
+    }
+    .tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+    .tab{
+      border:1px solid var(--line);background:#fff;color:var(--muted);
+      border-radius:11px;padding:10px 14px;font-weight:850;cursor:pointer
+    }
+    .tab.active{background:var(--purple);border-color:var(--purple);color:#fff}
+    .view{display:none}.view.active{display:block}
+    .layout{display:grid;grid-template-columns:minmax(350px,.82fr) minmax(540px,1.18fr);gap:16px}
+    .card{border-radius:19px;overflow:hidden;box-shadow:0 11px 28px rgba(30,37,64,.06)}
+    .head{
+      padding:15px 18px;border-bottom:1px solid var(--line);
+      display:flex;justify-content:space-between;align-items:center;gap:12px
+    }
+    .head h2{font-size:17px;margin:0}.head-note{font-size:12px;color:var(--muted)}
+    .body{padding:18px}
+    .fields{display:grid;gap:12px}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    label{display:block;font-size:12px;color:var(--muted);font-weight:850;margin-bottom:6px}
+    input,select,textarea{
+      width:100%;border:1px solid #cbd3df;border-radius:10px;background:#fff;color:var(--ink);
+      padding:10px 11px;outline:none
+    }
+    textarea{min-height:130px;resize:vertical;font:12px/1.5 Consolas,Monaco,monospace}
+    input:focus,select:focus,textarea:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(109,61,245,.10)}
+    .help{font-size:12px;color:var(--muted);line-height:1.5;margin-top:5px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .btn{border:0;border-radius:10px;padding:10px 13px;font-weight:850;cursor:pointer}
+    .primary{background:var(--purple);color:#fff}.success{background:var(--green);color:#fff}
+    .neutral{background:#eef1f5;color:var(--ink)}.danger{background:#fff0f1;color:var(--red)}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:13px}
+    .metric{border:1px solid var(--line);border-radius:11px;padding:10px;background:#fbfcfe;min-height:74px}
+    .metric small{display:block;color:var(--muted);font-size:11px;font-weight:800;margin-bottom:5px}
+    .metric strong{font-size:13px}
+    .waiting strong{color:#7d8798}.ok{background:var(--soft-green);border-color:#b7ead3}.ok strong{color:#087249}
+    .warn{background:var(--soft-amber);border-color:#efd99d}.warn strong{color:#8d6100}
+    .bad{background:var(--soft-red);border-color:#efbdc1}.bad strong{color:#b62d38}
+    .stage{
+      min-height:410px;border:1px dashed #bcc5d2;border-radius:14px;padding:30px;
+      display:grid;place-items:center;overflow:auto;
+      background:repeating-linear-gradient(45deg,#fff,#fff 13px,#fafbfc 13px,#fafbfc 26px)
+    }
+    .slot-label{text-align:center;text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--muted);margin-bottom:9px}
+    #gam-slot-host,#tag-frame-host{text-align:center}
+    .slot-box{display:inline-block;background:#fff;border:1px solid #cbd3df}
+    iframe{display:block;border:1px solid #cbd3df;background:#fff;margin:auto}
+    .log-tabs{display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-left:13px}
+    .log-tab{border:0;background:none;padding:11px 12px;color:var(--muted);font-weight:850;cursor:pointer;border-bottom:2px solid transparent}
+    .log-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+    .log-panel{display:none}.log-panel.active{display:block}
+    .timeline{max-height:410px;overflow:auto;font:11px/1.4 Consolas,Monaco,monospace}
+    .entry{
+      display:grid;grid-template-columns:72px 80px 165px 1fr;gap:8px;
+      padding:8px 14px;border-bottom:1px solid #edf0f4;align-items:start
+    }
+    .entry:hover{background:#fafbfc}
+    .time{color:#8b94a4}.direction{font-weight:850}.out{color:#a46100}.in{color:#087249}.internal{color:#6d3df5}
+    .event{font-weight:900;color:var(--purple);word-break:break-word}.detail{white-space:pre-wrap;word-break:break-word;color:#354057}
+    .nature-table{max-height:410px;overflow:auto;padding:12px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{border-bottom:1px solid #edf0f4;text-align:left;padding:8px;vertical-align:top}
+    th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+    td.url{font:11px/1.4 Consolas,Monaco,monospace;word-break:break-all}
+    .chip{display:inline-block;border-radius:999px;padding:4px 7px;background:#eef1f5;font-size:10px;font-weight:850}
+    .verdict{margin-top:13px;border:1px solid #d8cff9;background:var(--soft-purple);border-radius:12px;padding:12px}
+    .verdict h3{font-size:14px;margin:0 0 5px}.verdict p{font-size:12px;line-height:1.5;color:#536075;margin:0}
+    .setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .step{border:1px solid var(--line);border-radius:14px;padding:15px;background:#fff}
+    .step h3{font-size:15px;margin:0 0 8px}.step p,.step li{font-size:13px;line-height:1.55;color:#536075}
+    .code{background:#111827;color:#e5e7eb;border-radius:11px;padding:12px;white-space:pre-wrap;word-break:break-word;font:11px/1.5 Consolas,Monaco,monospace}
+    .checkrow{display:flex;gap:8px;align-items:center}.checkrow input{width:auto}
+    .footer{text-align:center;color:var(--muted);font-size:12px;padding:17px}
+    @media(max-width:980px){.layout,.setup-grid{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}}
+    @media(max-width:580px){.shell{padding:10px}.live-badge{display:none}.row2,.metrics{grid-template-columns:1fr}.entry{grid-template-columns:60px 70px 1fr}.detail{grid-column:1/-1}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="hero">
+    <div class="brand">
+      <div class="mark">N</div>
+      <div>
+        <h1>GAM & Tag QA Environment</h1>
+        <div class="subtitle">NEXBID · Next Generation Bidding · Creating Value in Every Bid.</div>
+      </div>
+    </div>
+    <div class="live-badge">Live GAM + isolated tag testing</div>
+  </header>
+
+  <div class="top-note">
+    <b>Two independent checks:</b> Live GAM mode sends a real Google Publisher Tag request to the ad-unit path you enter.
+    Tag Lab mode executes any trusted HTML/JavaScript tag in an isolated iframe and classifies observable outgoing requests,
+    incoming responses, creatives, trackers, media, render events, and errors. The QA page itself supplies no mock demand.
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-view="gamView">1. Live GAM request</button>
+    <button class="tab" data-view="tagView">2. Generic tag lab</button>
+    <button class="tab" data-view="setupView">3. GAM trafficking setup</button>
+  </nav>
+
+  <!-- LIVE GAM MODE -->
+  <section id="gamView" class="view active">
+    <div class="layout">
+      <article class="card">
+        <div class="head"><h2>Live GAM request settings</h2><span class="head-note">Uses Google Publisher Tag</span></div>
+        <div class="body">
+          <div class="fields">
+            <div>
+              <label for="gamAdUnit">GAM ad-unit path</label>
+              <input id="gamAdUnit" value="/1234567/NEXBID_QA">
+              <div class="help">Replace the sample network ID and ad-unit code with the real publisher GAM path.</div>
+            </div>
+
+            <div class="row2">
+              <div>
+                <label for="gamSize">Slot size</label>
+                <select id="gamSize">
+                  <option value="300x250">300 × 250</option>
+                  <option value="300x600">300 × 600</option>
+                  <option value="320x50">320 × 50</option>
+                  <option value="728x90">728 × 90</option>
+                  <option value="970x250">970 × 250</option>
+                </select>
+              </div>
+              <div>
+                <label for="gamTimeout">Observation window</label>
+                <select id="gamTimeout">
+                  <option value="10000">10 seconds</option>
+                  <option value="20000" selected>20 seconds</option>
+                  <option value="30000">30 seconds</option>
+                  <option value="60000">60 seconds</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label for="gamTargeting">Custom targeting — one key=value per line</label>
+              <textarea id="gamTargeting">qa=true
+qa_test_id=nexbid_qa_001</textarea>
+              <div class="help">The recommended QA line item should target <code>qa=true</code>, keeping it away from production traffic.</div>
+            </div>
+
+            <div class="checkrow">
+              <input type="checkbox" id="gamNpa">
+              <label for="gamNpa" style="margin:0">Request non-personalized ads for this QA request</label>
+            </div>
+
+            <div class="checkrow">
+              <input type="checkbox" id="gamCollapse">
+              <label for="gamCollapse" style="margin:0">Collapse the slot when GAM returns empty</label>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="gamRequest">Send GAM ad request</button>
+            <button class="btn success" id="gamRefresh">Refresh current slot</button>
+            <button class="btn neutral" id="gamClear">Reset</button>
+            <button class="btn neutral" id="gamExport">Download JSON</button>
+            <button class="btn neutral" id="gamCsv">Download CSV</button>
+          </div>
+
+          <div class="verdict" id="gamVerdict">
+            <h3>Ready</h3>
+            <p>Enter a real GAM ad-unit path. A sample path cannot return your publisher’s line item.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="head"><h2>GAM placement and request lifecycle</h2><span class="head-note">Inbound and outbound classification</span></div>
+        <div class="body">
+          <div class="metrics">
+            <div class="metric waiting" id="gamMRequest"><small>Ad request</small><strong>Waiting</strong></div>
+            <div class="metric waiting" id="gamMResponse"><small>GAM response</small><strong>Waiting</strong></div>
+            <div class="metric waiting" id="gamMRender"><small>Creative result</small><strong>Waiting</strong></div>
+            <div class="metric waiting" id="gamMView"><small>Viewability</small><strong>Waiting</strong></div>
+          </div>
+
+          <div class="stage">
+            <div id="gam-slot-host">
+              <div class="slot-label">Real GPT/GAM publisher slot</div>
+              <div id="gam-slot-placeholder" class="slot-box" style="width:300px;height:250px;display:grid;place-items:center;color:#8b94a4;font-size:13px;padding:20px">
+                Enter the real ad-unit path and send a GAM request.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="log-tabs">
+          <button class="log-tab active" data-group="gam" data-panel="gamTimeline">Timeline</button>
+          <button class="log-tab" data-group="gam" data-panel="gamNature">Request nature</button>
+        </div>
+        <div id="gamTimeline" class="log-panel active timeline"></div>
+        <div id="gamNature" class="log-panel nature-table"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- TAG LAB MODE -->
+  <section id="tagView" class="view">
+    <div class="layout">
+      <article class="card">
+        <div class="head"><h2>Generic HTML/JavaScript tag</h2><span class="head-note">Editable for every tag</span></div>
+        <div class="body">
+          <div class="fields">
+            <div>
+              <label for="tagCode">Paste the complete tag</label>
+              <textarea id="tagCode" style="min-height:230px"><script
+  src="https://nexbid.uk/nbx/v1.js?v=20260724-6"
+  data-config-id="moneycontrol.com">
+</script></textarea>
+            </div>
+
+            <div class="row2">
+              <div>
+                <label for="tagSize">Publisher slot size</label>
+                <select id="tagSize">
+                  <option value="300x250">300 × 250</option>
+                  <option value="300x600">300 × 600</option>
+                  <option value="320x50">320 × 50</option>
+                  <option value="728x90">728 × 90</option>
+                  <option value="970x250">970 × 250</option>
+                </select>
+              </div>
+              <div>
+                <label for="tagTimeout">Observation window</label>
+                <select id="tagTimeout">
+                  <option value="10000">10 seconds</option>
+                  <option value="20000" selected>20 seconds</option>
+                  <option value="30000">30 seconds</option>
+                  <option value="60000">60 seconds</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="checkrow">
+              <input type="checkbox" id="tagSameOrigin">
+              <label for="tagSameOrigin" style="margin:0">Allow same-origin access — use only with trusted tags</label>
+            </div>
+            <div class="help">Leave unchecked for stronger isolation. Some publisher-domain-dependent tags may need a same-origin hosted test.</div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="tagRun">Run tag</button>
+            <button class="btn neutral" id="tagReset">Stop/reset</button>
+            <button class="btn neutral" id="tagSave">Save in browser</button>
+            <button class="btn neutral" id="tagLoad">Load saved</button>
+            <button class="btn neutral" id="tagExport">Download JSON</button>
+            <button class="btn neutral" id="tagCsv">Download CSV</button>
+          </div>
+
+          <div class="verdict" id="tagVerdict">
+            <h3>Ready</h3>
+            <p>The tag will run in a publisher-sized iframe. No bid or creative is generated by this QA page.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="head"><h2>Tag execution and traffic analysis</h2><span class="head-note">Request/response nature</span></div>
+        <div class="body">
+          <div class="metrics">
+            <div class="metric waiting" id="tagMExecute"><small>Tag execution</small><strong>Waiting</strong></div>
+            <div class="metric waiting" id="tagMNetwork"><small>Network activity</small><strong>Waiting</strong></div>
+            <div class="metric waiting" id="tagMRender"><small>Visible render</small><strong>Waiting</strong></div>
+            <div class="metric waiting" id="tagMErrors"><small>Errors</small><strong>Waiting</strong></div>
+          </div>
+
+          <div class="stage">
+            <div id="tag-frame-host">
+              <div class="slot-label">Isolated publisher tag slot</div>
+              <iframe id="tagFrame" title="Generic tag QA frame" sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
+            </div>
+          </div>
+        </div>
+
+        <div class="log-tabs">
+          <button class="log-tab active" data-group="tag" data-panel="tagTimeline">Timeline</button>
+          <button class="log-tab" data-group="tag" data-panel="tagNature">Request nature</button>
+        </div>
+        <div id="tagTimeline" class="log-panel active timeline"></div>
+        <div id="tagNature" class="log-panel nature-table"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <section id="setupView" class="view">
+    <div class="setup-grid">
+      <article class="step">
+        <h3>1. Create a dedicated QA ad unit</h3>
+        <p>In the publisher’s GAM account, create a test-only ad unit such as:</p>
+        <div class="code">/NETWORK_ID/NEXBID_QA</div>
+        <p>Do not use a production placement for the first technical checks.</p>
+      </article>
+
+      <article class="step">
+        <h3>2. Create the QA line item</h3>
+        <ul>
+          <li>Line-item type: Price Priority</li>
+          <li>Rate: ₹10 CPM, or the agreed QA rate</li>
+          <li>Inventory: only the dedicated QA ad unit</li>
+          <li>Custom targeting: <b>qa=true</b></li>
+        </ul>
+      </article>
+
+      <article class="step">
+        <h3>3. Add the tag inside a GAM creative</h3>
+        <p>Use the included <b>gam-creative-template.html</b>. Replace the marked test-tag section with the tag under review, then paste the complete creative code into GAM.</p>
+        <div class="code">&lt;!-- TEST TAG START --&gt;
+&lt;script src="https://example.com/tag.js"&gt;&lt;/script&gt;
+&lt;!-- TEST TAG END --&gt;</div>
+      </article>
+
+      <article class="step">
+        <h3>4. Request the real GAM slot here</h3>
+        <p>Enter the real ad-unit path in the Live GAM tab, send the request, and verify the event sequence:</p>
+        <div class="code">slotRequested
+slotResponseReceived
+slotRenderEnded
+slotOnload
+impressionViewable</div>
+      </article>
+
+      <article class="step">
+        <h3>5. Correlate the request with a test ID</h3>
+        <p>The page sets <b>qa_test_id</b>. The creative template reads it using the GAM pattern macro:</p>
+        <div class="code">%%PATTERN:qa_test_id%%</div>
+        <p>This helps match the page request, GAM creative, tag activity, and exported QA report.</p>
+      </article>
+
+      <article class="step">
+        <h3>6. Important browser limitation</h3>
+        <p>The page can classify request URLs, event types, response status for observable fetch/XHR calls, and render behavior. It cannot read arbitrary cross-origin response bodies when the remote endpoint does not permit CORS. Use Chrome DevTools or server logs for the full payload.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="footer">NEXBID generic GAM and tag QA environment · Host on HTTPS</div>
+</div>
+
+<script>
+(() => {
+  window.googletag = window.googletag || { cmd: [] };
+
+  const gam = {
+    slot:null, events:[], nature:[], started:0, timer:null, completed:false,
+    response:false, rendered:false, empty:null, viewable:false, divId:null, servicesEnabled:false
+  };
+  const tag = {
+    events:[], nature:[], started:0, timer:null, completed:false, token:"",
+    executed:false, network:0, rendered:false, errors:0
+  };
+
+  const $ = id => document.getElementById(id);
+  const elapsed = state => state.started ? Math.round(performance.now()-state.started) : 0;
+  const esc = v => String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+
+  function classify(url, initiator="") {
+    const u=String(url||"").toLowerCase();
+    const i=String(initiator||"").toLowerCase();
+    if(u.includes("doubleclick.net")||u.includes("googlesyndication.com")||u.includes("securepubads")) return "GAM / Google ads";
+    if(u.includes("consent")||u.includes("cmp")||u.includes("gdpr")||u.includes("gpp")||u.includes("us_privacy")) return "Consent / privacy";
+    if(u.includes("openrtb")||u.includes("ortb")||u.includes("auction")||u.includes("prebid")||/([/?&_-])bid([/?&=_-])/.test(u)) return "Auction / bid";
+    if(u.includes("config")||u.includes("setting")||u.includes("manifest")) return "Configuration";
+    if(u.includes("vast")||u.includes(".mp4")||u.includes(".m3u8")||u.includes("video")) return "Video / VAST";
+    if(u.includes("pixel")||u.includes("track")||u.includes("impression")||u.includes("beacon")||u.includes("sync")) return "Tracking / sync";
+    if(i==="script"||u.includes(".js")) return "JavaScript";
+    if(i==="img"||/\.(png|jpg|jpeg|gif|webp|svg)(\?|$)/.test(u)) return "Image / creative";
+    if(i==="iframe"||u.includes("creative")||u.includes("render")||u.includes("adm")) return "Creative / iframe";
+    if(i==="fetch"||i==="xmlhttprequest") return "API / data";
+    return "Other / unknown";
+  }
+
+  function setMetric(id,kind,text){const el=$(id);el.className=`metric ${kind}`;el.querySelector("strong").textContent=text}
+
+  function renderTimeline(target,item){
+    const row=document.createElement("div");row.className="entry";
+    row.innerHTML=`<div class="time">+${item.elapsedMs} ms</div>
+      <div class="direction ${item.direction}">${esc(item.direction.toUpperCase())}</div>
+      <div class="event">${esc(item.event)}</div>
+      <div class="detail">${esc(JSON.stringify(item.detail||{},null,2))}</div>`;
+    $(target).prepend(row);
+  }
+
+  function renderNature(target,items){
+    const rows=items.map(x=>`<tr>
+      <td><span class="chip">${esc(x.direction)}</span></td>
+      <td>${esc(x.nature)}</td>
+      <td>${esc(x.method||"")}</td>
+      <td>${esc(x.status??"")}</td>
+      <td class="url">${esc(x.url||x.event||"")}</td>
+    </tr>`).join("");
+    $(target).innerHTML=`<table>
+      <thead><tr><th>Direction</th><th>Nature</th><th>Method</th><th>Status</th><th>URL / event</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="5">No classified activity yet.</td></tr>'}</tbody>
+    </table>`;
+  }
+
+  function addGam(event,direction="internal",detail={}){
+    const item={at:new Date().toISOString(),elapsedMs:elapsed(gam),event,direction,detail};
+    gam.events.push(item);renderTimeline("gamTimeline",item);
+  }
+  function addGamNature(data){gam.nature.push(data);renderNature("gamNature",gam.nature)}
+
+  function addTag(event,direction="internal",detail={}){
+    const item={at:new Date().toISOString(),elapsedMs:elapsed(tag),event,direction,detail};
+    tag.events.push(item);renderTimeline("tagTimeline",item);
+  }
+  function addTagNature(data){tag.nature.push(data);renderNature("tagNature",tag.nature)}
+
+  function parseTargeting(text){
+    const result={};
+    text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).forEach(line=>{
+      const idx=line.indexOf("=");if(idx<1)return;
+      const key=line.slice(0,idx).trim();
+      const values=line.slice(idx+1).split(",").map(v=>v.trim()).filter(Boolean);
+      if(key&&values.length)result[key]=values.length===1?values[0]:values;
+    });
+    return result;
+  }
+
+  function installGamListeners(){
+    const pubads=googletag.pubads();
+    const events=["slotRequested","slotResponseReceived","slotRenderEnded","slotOnload","impressionViewable","slotVisibilityChanged"];
+
+    events.forEach(name=>pubads.addEventListener(name,event=>{
+      if(!gam.slot||event.slot!==gam.slot)return;
+      const base={slotElementId:event.slot.getSlotElementId(),adUnitPath:event.slot.getAdUnitPath()};
+
+      if(name==="slotRequested"){
+        addGam(name,"out",base);
+        addGamNature({direction:"out",nature:"GAM ad request",method:"GET/POST",status:"",url:"Google Publisher Tag request"});
+        setMetric("gamMRequest","ok","Requested");
+      }
+      if(name==="slotResponseReceived"){
+        gam.response=true;addGam(name,"in",base);
+        addGamNature({direction:"in",nature:"GAM ad response",method:"",status:"received",url:"slotResponseReceived"});
+        setMetric("gamMResponse","ok","Response received");
+      }
+      if(name==="slotRenderEnded"){
+        gam.rendered=true;gam.empty=event.isEmpty;
+        const d={...base,isEmpty:event.isEmpty,size:event.size||null,creativeId:event.creativeId||null,lineItemId:event.lineItemId||null,advertiserId:event.advertiserId||null};
+        addGam(name,"in",d);
+        addGamNature({direction:"in",nature:event.isEmpty?"No-fill / empty":"Creative metadata",method:"",status:event.isEmpty?"empty":"rendered",url:`lineItem=${event.lineItemId||""}; creative=${event.creativeId||""}`});
+        setMetric("gamMRender",event.isEmpty?"warn":"ok",event.isEmpty?"Empty / no-fill":"Creative rendered");
+        updateGamVerdict();
+      }
+      if(name==="slotOnload") addGam(name,"in",base);
+      if(name==="impressionViewable"){
+        gam.viewable=true;addGam(name,"in",base);setMetric("gamMView","ok","Viewable");
+      }
+      if(name==="slotVisibilityChanged"){
+        const d={...base,inViewPercentage:event.inViewPercentage};
+        addGam(name,"in",d);
+        if(!gam.viewable)setMetric("gamMView","waiting",`${event.inViewPercentage}% in view`);
+      }
+    }));
+  }
+
+  function observeParentResources(){
+    try{
+      const obs=new PerformanceObserver(list=>{
+        list.getEntries().forEach(entry=>{
+          const name=entry.name||"";
+          if(!name.includes("doubleclick.net")&&!name.includes("googlesyndication.com")&&!name.includes("securepubads"))return;
+          const nature=classify(name,entry.initiatorType);
+          const key=`${name}|${Math.round(entry.startTime)}`;
+          if(gam.nature.some(x=>x.key===key))return;
+          addGamNature({key,direction:"out",nature,method:"resource",status:"",url:name});
+          addGam("GAM_RESOURCE","out",{url:name,initiatorType:entry.initiatorType,durationMs:Math.round(entry.duration)});
+        });
+      });
+      obs.observe({entryTypes:["resource"]});
+    }catch(e){}
+  }
+
+  function resetGam(){
+    clearTimeout(gam.timer);
+    if(gam.slot&&window.googletag.apiReady){
+      googletag.cmd.push(()=>{googletag.destroySlots([gam.slot]);});
+    }
+    Object.assign(gam,{slot:null,events:[],nature:[],started:0,timer:null,completed:false,response:false,rendered:false,empty:null,viewable:false,divId:null});
+    $("gamTimeline").innerHTML="";renderNature("gamNature",[]);
+    setMetric("gamMRequest","waiting","Waiting");setMetric("gamMResponse","waiting","Waiting");
+    setMetric("gamMRender","waiting","Waiting");setMetric("gamMView","waiting","Waiting");
+    $("gam-slot-host").innerHTML=`<div class="slot-label">Real GPT/GAM publisher slot</div>
+      <div id="gam-slot-placeholder" class="slot-box" style="width:300px;height:250px;display:grid;place-items:center;color:#8b94a4;font-size:13px;padding:20px">
+      Enter the real ad-unit path and send a GAM request.</div>`;
+    $("gamVerdict").innerHTML="<h3>Ready</h3><p>Enter a real GAM ad-unit path. A sample path cannot return your publisher’s line item.</p>";
+  }
+
+  function requestGam(){
+    const adUnit=$("gamAdUnit").value.trim();
+    if(!/^\/\d+\//.test(adUnit)){alert("Enter a real GAM path such as /1234567/NEXBID_QA.");return}
+    if(!window.googletag){alert("Google Publisher Tag has not loaded yet.");return}
+
+    clearTimeout(gam.timer);
+    if(gam.slot&&window.googletag.apiReady) googletag.cmd.push(()=>googletag.destroySlots([gam.slot]));
+    gam.events=[];gam.nature=[];gam.started=performance.now();gam.completed=false;gam.response=false;gam.rendered=false;gam.empty=null;gam.viewable=false;
+    $("gamTimeline").innerHTML="";renderNature("gamNature",[]);
+    setMetric("gamMRequest","waiting","Preparing");setMetric("gamMResponse","waiting","Waiting");
+    setMetric("gamMRender","waiting","Waiting");setMetric("gamMView","waiting","Waiting");
+
+    const [w,h]=$("gamSize").value.split("x").map(Number);
+    gam.divId=`gam-qa-slot-${Date.now()}`;
+    $("gam-slot-host").innerHTML=`<div class="slot-label">Real GPT/GAM publisher slot</div><div id="${gam.divId}" class="slot-box" style="width:${w}px;min-height:${h}px"></div>`;
+    addGam("QA_REQUEST_PREPARED","internal",{adUnitPath:adUnit,size:[w,h],targeting:parseTargeting($("gamTargeting").value)});
+
+    googletag.cmd.push(()=>{
+      try{
+        const pubads=googletag.pubads();
+
+        if(!gam.servicesEnabled){
+          pubads.disableInitialLoad();
+          installGamListeners();
+          googletag.enableServices();
+          gam.servicesEnabled=true;
+        }
+
+        if($("gamNpa").checked) pubads.setPrivacySettings({nonPersonalizedAds:true});
+        else pubads.setPrivacySettings({nonPersonalizedAds:false});
+
+        const slot=googletag.defineSlot(adUnit,[w,h],gam.divId);
+        if(!slot)throw new Error("GAM could not define the slot.");
+
+        const targeting=parseTargeting($("gamTargeting").value);
+        Object.entries(targeting).forEach(([k,v])=>slot.setTargeting(k,v));
+        if($("gamCollapse").checked) slot.setCollapseEmptyDiv(true,true);
+
+        slot.addService(pubads);gam.slot=slot;
+        googletag.display(gam.divId);
+        pubads.refresh([slot]);
+      }catch(error){
+        addGam("GAM_SETUP_ERROR","internal",{message:String(error)});
+        setMetric("gamMRequest","bad","Setup error");
+        $("gamVerdict").innerHTML=`<h3>GAM setup error</h3><p>${esc(String(error))}</p>`;
+      }
+    });
+
+    const timeout=Number($("gamTimeout").value);
+    gam.timer=setTimeout(()=>{
+      gam.completed=true;addGam("OBSERVATION_TIMEOUT","internal",{timeoutMs:timeout});
+      if(!gam.response)setMetric("gamMResponse","warn","No response event");
+      if(!gam.rendered)setMetric("gamMRender","warn","No render event");
+      updateGamVerdict();
+    },timeout);
+  }
+
+  function refreshGam(){
+    if(!gam.slot){alert("Send the first GAM request before refreshing.");return}
+    gam.started=performance.now();gam.completed=false;gam.response=false;gam.rendered=false;gam.empty=null;gam.viewable=false;
+    addGam("MANUAL_REFRESH","out",{});
+    googletag.cmd.push(()=>googletag.pubads().refresh([gam.slot]));
+  }
+
+  function updateGamVerdict(){
+    let h="GAM request in progress",p="Waiting for response and render events.";
+    if(gam.rendered&&gam.empty===false){h="Working: GAM returned a creative";p="The requested line item/creative rendered. Review the IDs and lifecycle events in the timeline."}
+    else if(gam.rendered&&gam.empty===true){h="GAM returned an empty result";p="The request reached GAM, but no eligible creative filled the slot. Check targeting, line-item status, dates, inventory, rate, and creative association."}
+    else if(gam.completed&&!gam.response){h="No GAM response event observed";p="Check the ad-unit path, GPT loading, browser blockers, consent/CSP, and Chrome Network panel."}
+    else if(gam.response&&!gam.rendered){h="Response received, render still pending";p="GAM responded, but no render-end event has been observed yet."}
+    $("gamVerdict").innerHTML=`<h3>${h}</h3><p>${p}</p>`;
+  }
+
+  function frameHtml(code,w,h,token){
+    const instrument=`
+      const TOKEN=${JSON.stringify(token)};
+      const tell=(event,direction="internal",detail={})=>parent.postMessage({nxbQa:true,token:TOKEN,event,direction,detail},"*");
+      tell("FRAME_READY","internal",{width:${w},height:${h},origin:location.origin});
+
+      window.addEventListener("error",e=>tell("WINDOW_ERROR","in",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
+      window.addEventListener("unhandledrejection",e=>tell("UNHANDLED_REJECTION","in",{reason:String(e.reason)}));
+      window.addEventListener("message",e=>tell("POSTMESSAGE_RECEIVED","in",{origin:e.origin,dataType:typeof e.data}));
+
+      const nativeFetch=window.fetch;
+      if(nativeFetch)window.fetch=function(input,init){
+        const url=typeof input==="string"?input:(input&&input.url)||String(input);
+        tell("FETCH_REQUEST","out",{url,method:(init&&init.method)||"GET",initiator:"fetch"});
+        return nativeFetch.apply(this,arguments).then(r=>{
+          tell("FETCH_RESPONSE","in",{url,status:r.status,ok:r.ok,initiator:"fetch"});
+          return r;
+        }).catch(err=>{tell("FETCH_ERROR","in",{url,error:String(err),initiator:"fetch"});throw err});
+      };
+
+      const X=window.XMLHttpRequest;
+      if(X){
+        const open=X.prototype.open,send=X.prototype.send;
+        X.prototype.open=function(method,url){this.__qa={method,url:String(url)};return open.apply(this,arguments)};
+        X.prototype.send=function(){
+          const m=this.__qa||{};tell("XHR_REQUEST","out",{...m,initiator:"xmlhttprequest"});
+          this.addEventListener("load",()=>tell("XHR_RESPONSE","in",{...m,status:this.status,initiator:"xmlhttprequest"}));
+          this.addEventListener("error",()=>tell("XHR_ERROR","in",{...m,initiator:"xmlhttprequest"}));
+          return send.apply(this,arguments);
+        };
+      }
+
+      const append=Element.prototype.appendChild,insert=Element.prototype.insertBefore;
+      function inspect(node){
+        try{
+          if(node&&node.tagName==="SCRIPT"&&node.src)tell("SCRIPT_REQUEST","out",{url:node.src,initiator:"script"});
+          if(node&&node.tagName==="IFRAME")tell("IFRAME_CREATED","out",{url:node.src||"",initiator:"iframe",width:node.width||"",height:node.height||""});
+          if(node&&node.tagName==="IMG"&&node.src)tell("IMAGE_REQUEST","out",{url:node.src,initiator:"img"});
+          if(node&&node.tagName==="VIDEO"&&node.src)tell("VIDEO_REQUEST","out",{url:node.src,initiator:"video"});
+        }catch(e){}
+      }
+      Element.prototype.appendChild=function(node){inspect(node);return append.call(this,node)};
+      Element.prototype.insertBefore=function(node,ref){inspect(node);return insert.call(this,node,ref)};
+
+      const originalWrite=document.write.bind(document);
+      document.write=function(...args){tell("DOCUMENT_WRITE","internal",{length:args.join("").length});return originalWrite(...args)};
+
+      const seen=new Set();
+      function scanResources(){
+        performance.getEntriesByType("resource").forEach(r=>{
+          const key=r.name+"|"+Math.round(r.startTime);
+          if(seen.has(key))return;seen.add(key);
+          tell("RESOURCE_TIMING","out",{url:r.name,initiator:r.initiatorType,durationMs:Math.round(r.duration),transferSize:r.transferSize||0});
+        });
+      }
+      setInterval(scanResources,700);
+
+      const observer=new MutationObserver(()=>{
+        const visible=[...document.body.querySelectorAll("iframe,img,video,canvas,object,embed")].some(el=>{
+          const r=el.getBoundingClientRect();return r.width>2&&r.height>2;
+        });
+        const meaningful=[...document.body.children].some(el=>{
+          if(el.id==="qa-placeholder"||el.tagName==="SCRIPT")return false;
+          const r=el.getBoundingClientRect();return r.width>2&&r.height>2;
+        });
+        if(visible||meaningful){
+          const p=document.getElementById("qa-placeholder");if(p)p.style.display="none";
+          tell("VISIBLE_CONTENT_DETECTED","in",{visibleMedia:visible,meaningfulElement:meaningful});
+        }
+      });
+      observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,characterData:true});
+      tell("TAG_EXECUTION_STARTED","internal",{});
+    `;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+      <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#fff}#qa-placeholder{position:fixed;inset:0;display:grid;place-items:center;text-align:center;color:#8b94a4;font:13px/1.5 Arial,sans-serif;padding:20px;pointer-events:none}</style>
+      </head><body><div id="qa-placeholder">Waiting for output from the real tag…</div>
+      <script>${instrument}<\/script>${code}
+      <script>parent.postMessage({nxbQa:true,token:${JSON.stringify(token)},event:"TAG_MARKUP_INSERTED",direction:"internal",detail:{htmlLength:${code.length}}},"*");<\/script>
+      </body></html>`;
+  }
+
+  function resetTag(){
+    clearTimeout(tag.timer);
+    Object.assign(tag,{events:[],nature:[],started:0,timer:null,completed:false,token:"",executed:false,network:0,rendered:false,errors:0});
+    $("tagTimeline").innerHTML="";renderNature("tagNature",[]);
+    setMetric("tagMExecute","waiting","Waiting");setMetric("tagMNetwork","waiting","Waiting");
+    setMetric("tagMRender","waiting","Waiting");setMetric("tagMErrors","waiting","Waiting");
+    $("tagFrame").src="about:blank";
+    $("tagVerdict").innerHTML="<h3>Ready</h3><p>The tag will run in a publisher-sized iframe. No bid or creative is generated by this QA page.</p>";
+  }
+
+  function runTag(){
+    const code=$("tagCode").value.trim();if(!code){alert("Paste a complete tag first.");return}
+    resetTag();tag.started=performance.now();tag.token=`qa-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const [w,h]=$("tagSize").value.split("x").map(Number);
+    const frame=$("tagFrame");frame.width=w;frame.height=h;
+    frame.setAttribute("sandbox",$("tagSameOrigin").checked?"allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin":"allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox");
+    addTag("PUBLISHER_TAG_TEST_STARTED","internal",{pageUrl:location.href,size:[w,h],tagLength:code.length,sameOrigin:$("tagSameOrigin").checked});
+    setMetric("tagMExecute","warn","Executing");
+    frame.srcdoc=frameHtml(code,w,h,tag.token);
+
+    const timeout=Number($("tagTimeout").value);
+    tag.timer=setTimeout(()=>{
+      tag.completed=true;addTag("OBSERVATION_TIMEOUT","internal",{timeoutMs:timeout});
+      if(!tag.network)setMetric("tagMNetwork","warn","No activity");
+      if(!tag.rendered)setMetric("tagMRender","warn","No visible ad");
+      updateTagVerdict();
+    },timeout);
+  }
+
+  function updateTagVerdict(){
+    let h="Tag test in progress",p="Waiting for network activity and visible output.";
+    if(tag.rendered){h="Working: visible content detected";p="The tag executed and produced visible content. Review the classified requests to verify the demand and creative chain."}
+    else if(tag.errors>0){h="Tag error detected";p="The tag or one of its resources raised an error. Review the timeline and Chrome Console."}
+    else if(tag.completed&&tag.network>0){h="Tag active, but no visible fill";p="The tag made observable requests, but no visible creative appeared within the selected window. This may be no-fill, domain/config restrictions, CORS/CSP, consent, or render logic."}
+    else if(tag.completed&&tag.network===0){h="Tag executed, no downstream activity";p="The markup was inserted, but no additional request was observed. Check config activation, publisher-domain validation, and script execution."}
+    $("tagVerdict").innerHTML=`<h3>${h}</h3><p>${p}</p>`;
+  }
+
+  window.addEventListener("message",e=>{
+    const d=e.data||{};
+    if(d.nxbQa&&d.token===tag.token){
+      const detail=d.detail||{};
+      if(["FRAME_READY","TAG_EXECUTION_STARTED","TAG_MARKUP_INSERTED"].includes(d.event)){
+        tag.executed=true;setMetric("tagMExecute","ok","Executed");
+      }
+      const requestEvents=["FETCH_REQUEST","XHR_REQUEST","SCRIPT_REQUEST","IFRAME_CREATED","IMAGE_REQUEST","VIDEO_REQUEST","RESOURCE_TIMING"];
+      if(requestEvents.includes(d.event)){
+        tag.network++;setMetric("tagMNetwork","ok",`${tag.network} action(s)`);
+        if(detail.url)addTagNature({direction:"out",nature:classify(detail.url,detail.initiator),method:detail.method||"resource",status:"",url:detail.url});
+      }
+      const responseEvents=["FETCH_RESPONSE","XHR_RESPONSE"];
+      if(responseEvents.includes(d.event)&&detail.url){
+        addTagNature({direction:"in",nature:classify(detail.url,detail.initiator)+" response",method:detail.method||"",status:detail.status??"",url:detail.url});
+      }
+      if(d.event==="VISIBLE_CONTENT_DETECTED"){
+        tag.rendered=true;setMetric("tagMRender","ok","Content detected");
+      }
+      if(["WINDOW_ERROR","UNHANDLED_REJECTION","FETCH_ERROR","XHR_ERROR"].includes(d.event)){
+        tag.errors++;setMetric("tagMErrors","bad",`${tag.errors} error(s)`);
+      }else if(tag.errors===0)setMetric("tagMErrors","ok","No errors");
+      addTag(d.event,d.direction||"internal",detail);updateTagVerdict();
+    }
+
+    if(d.NEXBID_GAM_QA_CREATIVE){
+      addGam("CREATIVE_MESSAGE","in",d);
+      if(d.url)addGamNature({direction:"out",nature:classify(d.url,d.initiator),method:d.method||"",status:d.status||"",url:d.url});
+    }
+  });
+
+  function report(state,type){
+    return {
+      generatedAt:new Date().toISOString(),type,page:{url:location.href,origin:location.origin,userAgent:navigator.userAgent},
+      settings:type==="GAM"?{
+        adUnitPath:$("gamAdUnit").value,size:$("gamSize").value,targeting:parseTargeting($("gamTargeting").value)
+      }:{
+        size:$("tagSize").value,sameOrigin:$("tagSameOrigin").checked,tag:$("tagCode").value
+      },
+      outcome:type==="GAM"?{
+        response:gam.response,rendered:gam.rendered,isEmpty:gam.empty,viewable:gam.viewable,completed:gam.completed
+      }:{
+        executed:tag.executed,networkActions:tag.network,visibleContent:tag.rendered,errors:tag.errors,completed:tag.completed
+      },
+      nature:state.nature,events:state.events
+    };
+  }
+
+  function download(name,text,type="application/json"){
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  }
+  function toCsv(items){
+    const cols=["direction","nature","method","status","url"];
+    const q=v=>`"${String(v??"").replaceAll('"','""')}"`;
+    return [cols.join(","),...items.map(x=>cols.map(c=>q(x[c])).join(","))].join("\n");
+  }
+
+  $("gamRequest").onclick=requestGam;$("gamRefresh").onclick=refreshGam;$("gamClear").onclick=resetGam;
+  $("gamExport").onclick=()=>download("nexbid-gam-qa-report.json",JSON.stringify(report(gam,"GAM"),null,2));
+  $("gamCsv").onclick=()=>download("nexbid-gam-request-nature.csv",toCsv(gam.nature),"text/csv");
+  $("tagRun").onclick=runTag;$("tagReset").onclick=resetTag;
+  $("tagSave").onclick=()=>{localStorage.setItem("nexbidQaTag",$("tagCode").value);alert("Tag saved in this browser.")};
+  $("tagLoad").onclick=()=>{$("tagCode").value=localStorage.getItem("nexbidQaTag")||$("tagCode").value};
+  $("tagExport").onclick=()=>download("nexbid-tag-qa-report.json",JSON.stringify(report(tag,"TAG"),null,2));
+  $("tagCsv").onclick=()=>download("nexbid-tag-request-nature.csv",toCsv(tag.nature),"text/csv");
+
+  document.querySelectorAll(".tab").forEach(btn=>btn.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+    btn.classList.add("active");$(btn.dataset.view).classList.add("active");
+  });
+  document.querySelectorAll(".log-tab").forEach(btn=>btn.onclick=()=>{
+    const group=btn.dataset.group;
+    document.querySelectorAll(`.log-tab[data-group="${group}"]`).forEach(x=>x.classList.remove("active"));
+    const parent=btn.closest(".card");
+    parent.querySelectorAll(".log-panel").forEach(x=>x.classList.remove("active"));
+    btn.classList.add("active");$(btn.dataset.panel).classList.add("active");
+  });
+
+  renderNature("gamNature",[]);renderNature("tagNature",[]);
+  resetTag();observeParentResources();
+})();
+</script>
+</body>
+</html>

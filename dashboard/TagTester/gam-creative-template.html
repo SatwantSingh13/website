@@ -1,0 +1,149 @@
+<!--
+NEXBID GAM QA CREATIVE TEMPLATE
+Paste the complete code into a GAM custom/third-party creative.
+Replace only the content between TEST TAG START and TEST TAG END.
+-->
+
+<div id="nexbid-gam-qa-creative" style="width:100%;height:100%;margin:0;padding:0;overflow:hidden"></div>
+
+<script>
+(function () {
+  var QA_TEST_ID = "%%PATTERN:qa_test_id%%";
+  var startedAt = Date.now();
+  var seenResources = {};
+
+  function send(eventName, payload) {
+    var message = {
+      NEXBID_GAM_QA_CREATIVE: true,
+      event: eventName,
+      qaTestId: QA_TEST_ID,
+      elapsedMs: Date.now() - startedAt,
+      payload: payload || {}
+    };
+
+    try {
+      window.parent.postMessage(message, "*");
+      window.top.postMessage(message, "*");
+    } catch (error) {}
+  }
+
+  send("CREATIVE_BOOT", {
+    width: "%%WIDTH%%",
+    height: "%%HEIGHT%%",
+    cachebuster: "%%CACHEBUSTER%%"
+  });
+
+  window.addEventListener("error", function (event) {
+    send("CREATIVE_ERROR", {
+      message: event.message,
+      source: event.filename,
+      line: event.lineno,
+      column: event.colno
+    });
+  });
+
+  window.addEventListener("unhandledrejection", function (event) {
+    send("CREATIVE_UNHANDLED_REJECTION", {
+      reason: String(event.reason)
+    });
+  });
+
+  var nativeFetch = window.fetch;
+  if (nativeFetch) {
+    window.fetch = function (input, init) {
+      var url = typeof input === "string" ? input : (input && input.url) || String(input);
+      send("FETCH_REQUEST", {
+        url: url,
+        method: (init && init.method) || "GET",
+        initiator: "fetch"
+      });
+
+      return nativeFetch.apply(this, arguments).then(function (response) {
+        send("FETCH_RESPONSE", {
+          url: url,
+          status: response.status,
+          ok: response.ok,
+          initiator: "fetch"
+        });
+        return response;
+      });
+    };
+  }
+
+  var XHR = window.XMLHttpRequest;
+  if (XHR) {
+    var originalOpen = XHR.prototype.open;
+    var originalSend = XHR.prototype.send;
+
+    XHR.prototype.open = function (method, url) {
+      this.__nxbQa = { method: method, url: String(url) };
+      return originalOpen.apply(this, arguments);
+    };
+
+    XHR.prototype.send = function () {
+      var meta = this.__nxbQa || {};
+      send("XHR_REQUEST", {
+        method: meta.method,
+        url: meta.url,
+        initiator: "xmlhttprequest"
+      });
+
+      this.addEventListener("load", function () {
+        send("XHR_RESPONSE", {
+          method: meta.method,
+          url: meta.url,
+          status: this.status,
+          initiator: "xmlhttprequest"
+        });
+      });
+
+      return originalSend.apply(this, arguments);
+    };
+  }
+
+  var observer = new MutationObserver(function () {
+    var root = document.getElementById("nexbid-gam-qa-creative") || document.body;
+    var elements = root.querySelectorAll("iframe,img,video,canvas,object,embed");
+    var visible = Array.prototype.some.call(elements, function (element) {
+      var rect = element.getBoundingClientRect();
+      return rect.width > 2 && rect.height > 2;
+    });
+
+    if (visible) {
+      send("VISIBLE_CREATIVE_DETECTED", {});
+    }
+  });
+
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true
+  });
+
+  setInterval(function () {
+    try {
+      performance.getEntriesByType("resource").forEach(function (entry) {
+        var key = entry.name + "|" + Math.round(entry.startTime);
+        if (seenResources[key]) return;
+        seenResources[key] = true;
+
+        send("RESOURCE_TIMING", {
+          url: entry.name,
+          initiator: entry.initiatorType,
+          durationMs: Math.round(entry.duration),
+          transferSize: entry.transferSize || 0
+        });
+      });
+    } catch (error) {}
+  }, 700);
+})();
+</script>
+
+<!-- ===================== TEST TAG START ===================== -->
+
+<script
+  src="https://nexbid.uk/nbx/v1.js?v=20260724-6"
+  data-config-id="moneycontrol.com">
+</script>
+
+<!-- ====================== TEST TAG END ====================== -->
