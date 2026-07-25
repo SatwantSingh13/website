@@ -8,7 +8,7 @@ import { onRequestPost } from "../functions/api/v1/config/index.js";
 
 const routerSource = await readFile(new URL("../nbx/v1.js", import.meta.url), "utf8");
 const commercialLoader = await readFile(new URL("../nbx/v1-commercial-20260724-6.js", import.meta.url), "utf8");
-const commercialPlayer = await readFile(new URL("../nbx/nexbanner-player-20260726-2.js", import.meta.url), "utf8");
+const commercialPlayer = await readFile(new URL("../nbx/nexbanner-player-20260726-3.js", import.meta.url), "utf8");
 const legacyLoader = await readFile(new URL("../nbx/v1-legacy-20260713-5.js", import.meta.url), "utf8");
 
 function routedLoader(version) {
@@ -55,7 +55,7 @@ test("the previous release query remains on the immutable legacy loader", () => 
 });
 
 test("commercial loader uses the immutable commercial player asset", () => {
-  assert.match(commercialLoader, /nexbanner-player-20260726-2\.js/);
+  assert.match(commercialLoader, /nexbanner-player-20260726-3\.js/);
   assert.doesNotMatch(commercialLoader, /withCachebuster\(endpoint,\s*config\.cachebuster\)/);
   assert.match(commercialLoader, /cache:\s*"default"/);
 });
@@ -66,6 +66,11 @@ test("deployment player is minified and exposes the commercial test hooks", () =
   assert.match(commercialPlayer, /runUnifiedAuction/);
   assert.match(commercialPlayer, /contentWindow\.document\.write/);
   assert.doesNotMatch(commercialPlayer, /startViewableRotation\(root/);
+});
+
+test("deployment player uses 1.5 second JS and 2 second GAM confirmation limits", () => {
+  assert.match(commercialPlayer, /var r=t\?2e3:1500/);
+  assert.doesNotMatch(commercialPlayer, /Math\.max\(2500/);
 });
 
 test("commercial config excludes Prebid and ORTB and returns the new tag", async () => {
