@@ -1,4 +1,4 @@
-/*! NexBanner Version 3 — commercial unified-auction loader; SafeFrame srcdoc syntax fix 20260725-2. */
+/*! NexBanner Version 3 — commercial unified-auction loader; proven frame renderer 20260725-3. */
 (function () {
   "use strict";
 
@@ -118,7 +118,7 @@
     }
 
     var loaderUrl = new URL(currentScriptUrl, window.location.href);
-    var playerUrl = new URL("nexbanner-player-20260725-2.js", loaderUrl);
+    var playerUrl = new URL("nexbanner-player-20260725-3.js", loaderUrl);
     var version = loaderUrl.searchParams.get("v") || "20260713-2";
     playerUrl.searchParams.set("v", version);
     var playerScript = document.createElement("script");
