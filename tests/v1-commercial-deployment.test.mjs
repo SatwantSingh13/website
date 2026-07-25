@@ -8,7 +8,7 @@ import { onRequestPost } from "../functions/api/v1/config/index.js";
 
 const routerSource = await readFile(new URL("../nbx/v1.js", import.meta.url), "utf8");
 const commercialLoader = await readFile(new URL("../nbx/v1-commercial-20260724-6.js", import.meta.url), "utf8");
-const commercialPlayer = await readFile(new URL("../nbx/nexbanner-player-20260725-1.js", import.meta.url), "utf8");
+const commercialPlayer = await readFile(new URL("../nbx/nexbanner-player-20260725-2.js", import.meta.url), "utf8");
 const legacyLoader = await readFile(new URL("../nbx/v1-legacy-20260713-5.js", import.meta.url), "utf8");
 
 function routedLoader(version) {
@@ -55,7 +55,7 @@ test("the previous release query remains on the immutable legacy loader", () => 
 });
 
 test("commercial loader uses the immutable commercial player asset", () => {
-  assert.match(commercialLoader, /nexbanner-player-20260725-1\.js/);
+  assert.match(commercialLoader, /nexbanner-player-20260725-2\.js/);
   assert.doesNotMatch(commercialLoader, /withCachebuster\(endpoint,\s*config\.cachebuster\)/);
   assert.match(commercialLoader, /cache:\s*"default"/);
 });
