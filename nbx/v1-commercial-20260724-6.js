@@ -1,4 +1,4 @@
-/*! NexBanner Version 3 — commercial unified-auction loader, release v=20260724-6. */
+/*! NexBanner Version 3 — commercial unified-auction loader; SafeFrame renderer fix 2026-07-25. */
 (function () {
   "use strict";
 
@@ -118,7 +118,7 @@
     }
 
     var loaderUrl = new URL(currentScriptUrl, window.location.href);
-    var playerUrl = new URL("nexbanner-player-20260724-6.js", loaderUrl);
+    var playerUrl = new URL("nexbanner-player-20260725-1.js", loaderUrl);
     var version = loaderUrl.searchParams.get("v") || "20260713-2";
     playerUrl.searchParams.set("v", version);
     var playerScript = document.createElement("script");
