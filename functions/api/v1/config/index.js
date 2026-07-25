@@ -94,6 +94,7 @@ function normalizeConfig(configId, body) {
   })).filter((item) => item.endpoint || item.params);
   const vastDemandItems = vastDemand.map((item) => ({
     name: item.name || "",
+    partnerId: item.partnerId || item.id || item.code || "",
     endpoint: endpointOf(item),
     configuredBidCpm: item.configuredBidCpm || "",
     floorCpm: item.floorCpm || "",
@@ -103,32 +104,38 @@ function normalizeConfig(configId, body) {
   })).filter((item) => item.endpoint);
   const displayScriptDemand = displayTags.map((item) => ({
     name: item.name || "",
+    partnerId: item.partnerId || item.id || item.code || "",
     endpoint: endpointOf(item),
     configuredBidCpm: item.configuredBidCpm || "",
     floorCpm: item.floorCpm || "",
     currency: item.currency || (commercialV1 ? "USD" : ""),
     timeoutMs: item.timeoutMs || "",
+    fallbackOrder: item.fallbackOrder ?? "",
   })).filter((item) => item.endpoint);
   const adserverScriptDemand = adserverTags
     .filter((item) => item.tagType === "script")
     .map((item) => ({
       name: item.name || "",
+      partnerId: item.partnerId || item.id || item.code || "",
       endpoint: endpointOf(item),
       configuredBidCpm: item.configuredBidCpm || "",
       floorCpm: item.floorCpm || "",
       currency: item.currency || (commercialV1 ? "USD" : ""),
       timeoutMs: item.timeoutMs || "",
+      fallbackOrder: item.fallbackOrder ?? "",
     }))
     .filter((item) => item.endpoint);
   const adserverHtmlDemand = adserverTags
     .filter((item) => item.tagType === "html")
     .map((item) => ({
       name: item.name || "",
+      partnerId: item.partnerId || item.id || item.code || "",
       html: normalizeHtmlPayload(item.html || ""),
       configuredBidCpm: item.configuredBidCpm || "",
       floorCpm: item.floorCpm || "",
       currency: item.currency || (commercialV1 ? "USD" : ""),
       timeoutMs: item.timeoutMs || "",
+      fallbackOrder: item.fallbackOrder ?? "",
     }))
     .filter((item) => item.html);
   const ortbEndpoints = demand
@@ -199,7 +206,7 @@ function normalizeConfig(configId, body) {
     auctionTimeoutMs: Number(body.auctionTimeoutMs || setup.auctionTimeoutMs || (commercialV1 ? 900 : 1200)),
     partnerTimeoutMs: Number(body.partnerTimeoutMs || setup.partnerTimeoutMs || (commercialV1 ? 750 : 1200)),
     bidTtlMs: Number(body.bidTtlMs || setup.bidTtlMs || 5000),
-    viewabilityThreshold: Number(body.viewabilityThreshold ?? setup.viewabilityThreshold ?? (commercialV1 ? 0.3 : safePricePriority ? 0.5 : 0.2)),
+    viewabilityThreshold: Number(body.viewabilityThreshold ?? setup.viewabilityThreshold ?? (commercialV1 ? 0.2 : safePricePriority ? 0.5 : 0.2)),
     viewabilityTimeMs: Number(body.viewabilityTimeMs ?? setup.viewabilityTimeMs ?? (commercialV1 ? 200 : safePricePriority ? 1000 : 0)),
     viewabilityWaitTimeoutMs: Number(body.viewabilityWaitTimeoutMs ?? setup.viewabilityWaitTimeoutMs ?? 15000),
     auctionOnViewabilityTimeout: body.auctionOnViewabilityTimeout === true,
