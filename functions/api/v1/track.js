@@ -32,18 +32,31 @@ export async function onRequestGet(context) {
     internalCpm: url.searchParams.get("internal_cpm") || "",
   };
 
+ 
+  try {
   const store = eventStore(context.env);
+
   if (store && store.put) {
     const duplicate = await isDuplicateDeliveryEvent(store, event);
     const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
     if (!duplicate) {
       await Promise.all([
-        store.put(key, JSON.stringify(event), { expirationTtl: 60 * 60 * 24 * 30 }),
+        store.put(key, JSON.stringify(event), {
+          expirationTtl: 60 * 60 * 24 * 30
+        }),
         writeExactMarkers(store, event),
-        updateCounters(store, event),
+        updateCounters(store, event)
       ]);
     }
   }
+} catch (error) {
+  console.error("NexBanner tracking storage failed", {
+    event: event.event,
+    configId: event.configId,
+    message: error instanceof Error ? error.message : String(error)
+  });
+}
 
   const pixel = Uint8Array.from([71,73,70,56,57,97,1,0,1,0,128,0,0,255,255,255,0,0,0,33,249,4,1,0,0,0,0,44,0,0,0,0,1,0,1,0,0,2,2,68,1,0,59]);
   return new Response(pixel, {
