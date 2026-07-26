@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="unsafe-url">
+<meta name="viewport" content="width=300,initial-scale=1">
+<style>html,body{margin:0;width:300px;height:250px;overflow:hidden;background:transparent}#div-gpt-ad-nexbanner-moneycontrol{width:300px;height:250px}</style>
+<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="div-gpt-ad-nexbanner-moneycontrol"></div>
+<script>
+(function () {
+  "use strict";
+  var token = new URLSearchParams(location.search).get("token") || "";
+  var finished = false;
+  function send(filled, reason) {
+    if (finished) return;
+    finished = true;
+    parent.postMessage({ token: token, filled: filled === true, reason: reason || "" }, "*");
+  }
+  window.googletag = window.googletag || { cmd: [] };
+  googletag.cmd.push(function () {
+    var slot = googletag.defineSlot(
+      "/23356218010/Moneycontrol_Banner_300",
+      [300, 250],
+      "div-gpt-ad-nexbanner-moneycontrol"
+    );
+    if (!slot) {
+      send(false, "gam-slot-definition-failed");
+      return;
+    }
+    slot.addService(googletag.pubads());
+    googletag.pubads().addEventListener("slotRenderEnded", function (event) {
+      if (event.slot === slot) send(!event.isEmpty, event.isEmpty ? "gam-empty" : "");
+    });
+    googletag.enableServices();
+    googletag.display("div-gpt-ad-nexbanner-moneycontrol");
+  });
+  setTimeout(function () { send(false, "gam-timeout"); }, 5000);
+})();
+</script>
+</body>
+</html>
