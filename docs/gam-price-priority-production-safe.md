@@ -16,7 +16,7 @@ True request-level competition requires the separate NexBid Prebid adapter or a 
 
 ```html
 <script
-  src="https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260724-1"
+  src="https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-2"
   data-config-id="moneycontrol.com--article-mid--300x250--v1"
   data-config-version="1"
   data-publisher-id="moneycontrol"
@@ -25,11 +25,16 @@ True request-level competition requires the separate NexBid Prebid adapter or a 
   data-width="300"
   data-height="250"
   data-gam-click="%%CLICK_URL_UNESC%%"
-  data-gam-cachebuster="%%CACHEBUSTER%%">
+  data-gam-cachebuster="%%CACHEBUSTER%%"
+  data-allow-vpaid="true"
+  data-vpaid-mode="insecure"
+  data-vpaid-start-timeout-ms="15000">
 </script>
 ```
 
 The legacy `/nbx/v1.js?v=20260713-5` asset remains available for rollback. It is not overwritten by this feature.
+
+The VPAID attributes explicitly opt this publisher tag into Google IMA friendly-iframe playback. Standard VAST continues through the lightweight HTML5 path, and failed VAST/VPAID attempts continue to the configured GAM passback.
 
 ## Request lifecycle
 
