@@ -16,6 +16,7 @@ async function mount(target, directConfig) {
     config = normalize(directConfig);
     config.configError = error?.message || "config-error";
   }
+  config = applyProductionProfile(config);
   config.requestId = requestId;
   config.maxAuctionCycles = 1;
   config.internalRefresh = false;
@@ -94,8 +95,10 @@ function normalize(config) {
     viewabilityTimeMs: finiteNumber(config.viewabilityTimeMs, 1000),
     viewabilityWaitTimeoutMs: finiteNumber(config.viewabilityWaitTimeoutMs, 15000),
     auctionOnViewabilityTimeout: config.auctionOnViewabilityTimeout === true,
-    auctionBudgetMs: Math.max(10000, finiteNumber(config.auctionBudgetMs, 10000)),
-    passbackTimeoutMs: finiteNumber(config.passbackTimeoutMs, 2000),
+    auctionBudgetMs: Math.min(10000, Math.max(1000, finiteNumber(config.auctionBudgetMs, 10000))),
+    vastStageTimeoutMs: Math.min(10000, Math.max(1000, finiteNumber(config.vastStageTimeoutMs, 10000))),
+    globalHardStopMs: Math.min(25000, Math.max(10000, finiteNumber(config.globalHardStopMs, 25000))),
+    passbackTimeoutMs: Math.min(5000, Math.max(500, finiteNumber(config.passbackTimeoutMs, 5000))),
     enablePassback: config.enablePassback === true,
     collapseOnPassbackFailure: config.collapseOnPassbackFailure === true,
     rejectBelowGamRate: config.rejectBelowGamRate !== false,
@@ -108,12 +111,38 @@ function normalize(config) {
     sliderScriptUrl: config.sliderScriptUrl || "",
     sliderName: config.sliderName || "Slider",
     sliderScriptId: config.sliderScriptId || "",
-    sliderTimeoutMs: finiteNumber(config.sliderTimeoutMs, 8000),
+    sliderTimeoutMs: Math.min(5000, Math.max(500, finiteNumber(config.sliderTimeoutMs, 5000))),
     sliderCpm: finiteNumber(config.sliderCpm, 0),
     vpaidMode: String(config.vpaidMode || "insecure").toLowerCase() === "enabled" ? "enabled" : "insecure",
     vpaidStartTimeoutMs: finiteNumber(config.vpaidStartTimeoutMs, 15000),
     imaSdkUrl: config.imaSdkUrl || DEFAULT_IMA_SDK_URL
   };
+}
+
+function applyProductionProfile(config) {
+  if (String(config.configId || "").toLowerCase() !== "moneycontrol.com") return config;
+  const playstream = array(config.vastDemand).find((item) =>
+    /servg\.playstream\.media\/api\/adserver61\/vast/i.test(String(item?.endpoint || item?.url || ""))
+  );
+  return normalize({
+    ...config,
+    vastDemand: playstream ? [{ ...playstream, name: "Playstream", allowVpaid: false, timeoutMs: 10000 }] : [],
+    prebidDemand: [],
+    displayScriptDemand: [],
+    ortbDemand: [],
+    sliderScriptUrl: "https://display.b-cdn.net/scripts/loader.js?file=6a60a9bb5a723c4751c108a6-6a60aa7a5a723c4751c109a2",
+    sliderScriptId: "6a60aa7a5a723c4751c109a2",
+    sliderName: "Slider",
+    sliderTimeoutMs: 5000,
+    adserverScriptDemand: [],
+    adserverHtmlDemand: [{ name: "Nexbid GAM Moneycontrol", frameUrl: "https://nexbid.uk/nbx/gam-moneycontrol-wrapper.html", floorCpm: 0, timeoutMs: 5000 }],
+    allowVpaid: false,
+    auctionBudgetMs: 10000,
+    vastStageTimeoutMs: 10000,
+    passbackTimeoutMs: 5000,
+    globalHardStopMs: 25000,
+    enablePassback: false
+  });
 }
 
 function waitForViewability(root, config, machine, done) {
@@ -163,6 +192,14 @@ async function runAuction(root, config, machine, startedAt) {
   if (!machine.transition("auctioning")) return;
   machine.auctionCycles += 1;
   const auctionStarted = Date.now();
+  config.__vastDeadline = auctionStarted + config.vastStageTimeoutMs;
+  const hardStopTimer = window.setTimeout(() => {
+    if (machine.isTerminal()) return;
+    clear(root);
+    track(config, "auction_hard_stop", { layer: "auction", reason: "global-25s-deadline" });
+    if (machine.state === "auctioning" || machine.state === "rendering" || machine.state === "running-passback") machine.transition("no-fill", { reason: "global-25s-deadline" });
+  }, config.globalHardStopMs);
+  machine.addCleanup(() => clearTimeout(hardStopTimer));
   track(config, "auction_started", { layer: "auction" });
   const candidates = await collectCandidates(config, machine);
   if (machine.isTerminal()) return;
@@ -233,7 +270,8 @@ async function collectCandidates(config, machine) {
       layer: "slider",
       cpm: config.sliderCpm,
       priority: 0,
-      timeoutMs: config.sliderTimeoutMs
+      timeoutMs: config.sliderTimeoutMs,
+      frameUrl: String(config.configId || "").toLowerCase() === "moneycontrol.com" ? "https://nexbid.uk/nbx/slider-moneycontrol-wrapper.html" : ""
     }));
   }
   const tagItems = [
@@ -251,7 +289,8 @@ async function collectCandidates(config, machine) {
       layer: "adserver",
       cpm: finiteNumber(item.floorCpm, 0),
       priority: 200 + index,
-      timeoutMs: finiteNumber(item.timeoutMs, config.passbackTimeoutMs)
+      timeoutMs: finiteNumber(item.timeoutMs, config.passbackTimeoutMs),
+      frameUrl: item.frameUrl || ""
     }));
   });
   return new Promise((resolve) => {
@@ -545,6 +584,12 @@ function renderImage(root, config, machine, ad) {
 function renderVideo(root, config, machine, ad) {
   return new Promise((resolve) => {
     clear(root);
+    let settled = false;
+    let startTimer = 0;
+    const finish = (result) => { if (settled) return; settled = true; clearTimeout(startTimer); resolve(result); };
+    const remaining = Math.max(0, finiteNumber(config.__vastDeadline, Date.now()) - Date.now());
+    if (!remaining) { resolve({ filled: false, reason: "vast-stage-timeout" }); return; }
+    startTimer = window.setTimeout(() => finish({ filled: false, reason: "vast-stage-timeout" }), remaining);
     const video = document.createElement("video");
     video.src = safeHttpUrl(ad.mediaUrl);
     video.width = config.width;
@@ -562,7 +607,7 @@ function renderVideo(root, config, machine, ad) {
     };
     video.addEventListener("playing", () => {
       fire("start");
-      resolve({ filled: !machine.isTerminal() });
+      finish({ filled: !machine.isTerminal() });
     }, { once: true });
     video.addEventListener("timeupdate", () => {
       if (!video.duration) return;
@@ -572,7 +617,7 @@ function renderVideo(root, config, machine, ad) {
       if (ratio >= 0.75) fire("thirdQuartile");
     });
     video.addEventListener("ended", () => fire("complete"), { once: true });
-    video.addEventListener("error", () => resolve({ filled: false, reason: "video-error" }), { once: true });
+    video.addEventListener("error", () => finish({ filled: false, reason: "video-error" }), { once: true });
     const click = httpClick(ad.clickUrl, config.gamClickMacro);
     if (click) {
       const link = document.createElement("a");
@@ -584,7 +629,7 @@ function renderVideo(root, config, machine, ad) {
     } else {
       root.appendChild(video);
     }
-    video.play().catch(() => resolve({ filled: false, reason: "autoplay-blocked" }));
+    video.play().catch(() => finish({ filled: false, reason: "autoplay-blocked" }));
   });
 }
 
@@ -597,7 +642,7 @@ function renderFrame(root, config, machine, ad) {
     frame.title = "Advertisement";
     frame.setAttribute("scrolling", "no");
     frame.setAttribute("frameborder", "0");
-    frame.setAttribute("sandbox", "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox");
+    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox");
     const token = makeId();
     const timeout = Math.max(500, finiteNumber(ad.timeoutMs, 2000));
     const listener = (event) => {
@@ -617,7 +662,14 @@ function renderFrame(root, config, machine, ad) {
     window.addEventListener("message", listener);
     root.appendChild(frame);
     const body = ad.html || `<script src="${escapeAttribute(safeHttpUrl(ad.scriptUrl))}"><\/script>`;
-    frame.srcdoc = frameDocument(body, token, timeout);
+    if (ad.frameUrl) {
+      const frameUrl = new URL(safeHttpUrl(ad.frameUrl));
+      frameUrl.searchParams.set("token", token);
+      frameUrl.searchParams.set("cb", String(Date.now()));
+      frame.src = frameUrl.toString();
+    } else {
+      frame.srcdoc = frameDocument(body, token, timeout);
+    }
   });
 }
 
