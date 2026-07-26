@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>NEXBID Playstream VAST Player Tester</title>
+  <style>
+    :root{--navy:#071d3b;--blue:#0777f8;--cyan:#20b9ff;--green:#0b9b69;--red:#d34b4b;--ink:#14233b;--muted:#66748b;--line:#dce5f0;--page:#f4f7fb;--white:#fff}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at 8% 0%,rgba(32,185,255,.13),transparent 31rem),var(--page);color:var(--ink);font-family:Inter,Arial,sans-serif}
+    button,input,select,textarea{font:inherit}
+    .shell{max-width:1450px;margin:auto;padding:28px}
+    .hero{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:20px}
+    .eyebrow{display:block;color:var(--blue);font-size:11px;font-weight:900;letter-spacing:.18em;margin-bottom:9px}
+    h1{margin:0;color:var(--navy);font-size:clamp(30px,4vw,48px);letter-spacing:-.045em}
+    .hero p{color:var(--muted);line-height:1.6;max-width:760px;margin:12px 0 0}
+    .status{display:flex;align-items:center;gap:9px;padding:10px 15px;background:#fff;border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 28px rgba(14,36,69,.07);font-size:12px;font-weight:850;white-space:nowrap}
+    .status i{display:block;width:9px;height:9px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 4px rgba(7,119,248,.12)}
+    .status.ok i{background:var(--green);box-shadow:0 0 0 4px rgba(11,155,105,.12)}
+    .status.bad i{background:#d78717;box-shadow:0 0 0 4px rgba(215,135,23,.12)}
+    .grid{display:grid;grid-template-columns:minmax(400px,1.15fr) minmax(380px,.85fr);gap:18px}
+    .card{background:var(--white);border:1px solid var(--line);border-radius:22px;box-shadow:0 16px 40px rgba(14,36,69,.07);padding:22px}
+    .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .head div{display:flex;align-items:center;gap:11px}
+    .head span{display:grid;place-items:center;width:38px;height:31px;border-radius:9px;background:#eaf4ff;color:var(--blue);font-size:11px;font-weight:900}
+    h2{margin:0;color:var(--navy);font-size:18px}
+    label{display:block;color:#3b4a61;font-size:12px;font-weight:850;margin:0 0 7px}
+    textarea,input,select{width:100%;border:1px solid #ccd7e4;border-radius:11px;background:#fbfdff;color:var(--ink);padding:11px 12px;outline:none}
+    textarea:focus,input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(7,119,248,.1)}
+    textarea{min-height:126px;resize:vertical;font:11px/1.5 Consolas,monospace}
+    .field{margin-bottom:13px}.row{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:10px}
+    .help{font-size:11px;color:var(--muted);line-height:1.5;margin-top:6px}
+    .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+    .btn{border:0;border-radius:10px;padding:11px 14px;font-weight:850;cursor:pointer}
+    .primary{background:var(--blue);color:white}.neutral{background:#edf3fa;color:#345879}.btn:disabled{opacity:.6;cursor:wait}
+    .stage-wrap{display:grid;place-items:center;min-height:390px;border:1px dashed #bac7d6;border-radius:16px;background:repeating-linear-gradient(45deg,#fff,#fff 13px,#f8fafc 13px,#f8fafc 26px);padding:30px;overflow:auto}
+    #banner{position:relative;width:300px;height:250px;overflow:hidden;background:var(--navy);box-shadow:0 18px 38px rgba(5,22,48,.26)}
+    #banner video{display:block;width:100%;height:100%;object-fit:contain}
+    .empty,.gam{display:flex;align-items:center;justify-content:center;flex-direction:column;height:100%;padding:22px;text-align:center;color:white}
+    .empty b,.gam b{font-size:15px;margin:11px 0 6px}.empty small,.gam small{font-size:11px;line-height:1.45;color:#adbed3}
+    .play{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--blue);padding-left:3px}
+    .gam{background:linear-gradient(145deg,#072854,#0750a1)}.gam em{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--cyan);font-style:normal;font-size:12px;font-weight:900}
+    .facts{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.facts span{padding:6px 9px;border-radius:999px;background:#edf6ff;color:#225a8d;font-size:10px;font-weight:850}
+    .log-card{grid-column:1/-1}.logs{border:1px solid var(--line);border-radius:13px;overflow:hidden;font:11px/1.4 Consolas,monospace}
+    .loghead,.entry{display:grid;grid-template-columns:82px 190px 1fr;gap:13px;padding:10px 13px}
+    .loghead{background:#f1f5fa;color:#77859a;text-transform:uppercase;letter-spacing:.08em;font-size:9px;font-weight:900}
+    .entry{border-top:1px solid #edf1f6}.entry strong{color:var(--blue)}.entry.ok strong{color:var(--green)}.entry.bad strong{color:var(--red)}.entry span:last-child{word-break:break-word}
+    .emptylog{text-align:center;padding:28px;color:#8290a3}
+    .links{display:flex;gap:8px;flex-wrap:wrap}.links a{text-decoration:none;padding:8px 10px;border-radius:9px;background:#edf3fa;color:#345879;font-size:11px;font-weight:850}
+    @media(max-width:930px){.grid{grid-template-columns:1fr}.log-card{grid-column:auto}}
+    @media(max-width:620px){.shell{padding:17px}.hero{flex-direction:column}.row{grid-template-columns:1fr 1fr}.row .field:last-child{grid-column:1/-1}.card{padding:16px}.loghead,.entry{grid-template-columns:64px 1fr}.loghead span:last-child,.entry span:last-child{grid-column:1/-1}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div>
+      <span class="eyebrow">NEXBANNER DEVELOPMENT LAB</span>
+      <h1>Playstream VAST Player Tester</h1>
+      <p>One banner container, one Playstream VAST attempt, confirmed MP4 playback and a same-frame handoff to the GAM display stage when video does not deliver.</p>
+    </div>
+    <div class="status" id="status"><i></i><span>Ready</span></div>
+  </header>
+
+  <section class="grid">
+    <article class="card">
+      <div class="head">
+        <div><span>01</span><h2>VAST configuration</h2></div>
+        <div class="links">
+          <a href="./GamTester.html" target="_blank" rel="noopener">Open GAM Tester</a>
+        </div>
+      </div>
+      <div class="field">
+        <label for="vastUrl">Playstream VAST tag</label>
+        <textarea id="vastUrl">https://servg.playstream.media/api/adserver61/vast/?AV_PUBLISHERID=6a4e1f74e2d7a7b81e065e78&amp;AV_CHANNELID=6a4e6a33978055d8f10fa245&amp;AV_URL=%%REFERRER_URL_ESC_ESC%%&amp;cb=%%CACHEBUSTER%%&amp;AV_WIDTH=%%WIDTH%%&amp;AV_HEIGHT=%%HEIGHT%%&amp;hidevpaid=1&amp;AV_PLCMT=1</textarea>
+      </div>
+      <div class="field">
+        <label for="pageUrl">Publisher page/referrer</label>
+        <input id="pageUrl" value="https://www.moneycontrol.com/">
+      </div>
+      <div class="row">
+        <div class="field"><label for="width">Width</label><input id="width" type="number" value="300"></div>
+        <div class="field"><label for="height">Height</label><input id="height" type="number" value="250"></div>
+        <div class="field">
+          <label for="timeout">Total test budget</label>
+          <select id="timeout"><option value="2500">2,500 ms</option><option value="3500">3,500 ms</option><option value="5000" selected>5,000 ms</option></select>
+        </div>
+      </div>
+      <div class="help">The request is sent through Nexbid’s existing server-side VAST resolver, which follows wrappers, removes browser CORS dependency and blocks unsupported VPAID when <code>hidevpaid=1</code>.</div>
+      <div class="actions">
+        <button class="btn primary" id="run">Run Playstream test</button>
+        <button class="btn neutral" id="reset">Reset</button>
+        <button class="btn neutral" id="copy">Copy report</button>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="head"><div><span>02</span><h2>Single banner output</h2></div><b id="sizeLabel">300 × 250</b></div>
+      <div class="stage-wrap">
+        <div id="banner">
+          <div class="empty"><span class="play">▶</span><b>Ready for one VAST attempt</b><small>GAM remains unloaded until video failure.</small></div>
+        </div>
+      </div>
+      <div class="facts" id="facts"></div>
+    </article>
+
+    <article class="card log-card">
+      <div class="head"><div><span>03</span><h2>Live event log</h2></div><button class="btn neutral" id="clear">Clear</button></div>
+      <div class="logs" id="logs">
+        <div class="loghead"><span>Time</span><span>Event</span><span>Detail</span></div>
+        <div class="emptylog">Run the test to see the VAST request, resolver result, playback events and GAM handoff.</div>
+      </div>
+    </article>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id)};
+  var state={entries:[],controller:null,fired:{},resolved:null,startTimer:null};
+  function now(){return new Date().toLocaleTimeString("en-GB",{hour12:false})}
+  function log(event,detail,tone){
+    state.entries.push({time:now(),event:event,detail:String(detail||""),tone:tone||""});
+    renderLogs();
+  }
+  function renderLogs(){
+    var rows='<div class="loghead"><span>Time</span><span>Event</span><span>Detail</span></div>';
+    if(!state.entries.length)rows+='<div class="emptylog">No events yet.</div>';
+    state.entries.forEach(function(x){rows+='<div class="entry '+x.tone+'"><span>'+escapeHtml(x.time)+'</span><strong>'+escapeHtml(x.event)+'</strong><span>'+escapeHtml(x.detail)+'</span></div>'});
+    $("logs").innerHTML=rows;
+  }
+  function escapeHtml(value){return String(value).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]})}
+  function status(text,tone){$("status").className="status "+(tone||"");$("status").querySelector("span").textContent=text}
+  function expand(value,w,h){
+    var page=$("pageUrl").value.trim()||location.href;
+    var cb=String(Date.now())+Math.floor(Math.random()*1000000);
+    var map={"%%CACHEBUSTER%%":cb,"%%CACHE_BUSTER%%":cb,"%%RANDOM%%":cb,"%%WIDTH%%":w,"%%HEIGHT%%":h,"%%REFERRER_URL%%":page,"%%REFERRER_URL_ESC%%":encodeURIComponent(page),"%%REFERRER_URL_ESC_ESC%%":encodeURIComponent(encodeURIComponent(page))};
+    Object.keys(map).forEach(function(key){value=value.split(key).join(map[key])});
+    return value;
+  }
+  function pixel(urls){
+    (urls||[]).forEach(function(url){if(!url)return;var image=new Image();image.src=url});
+  }
+  function fire(name){
+    if(!state.resolved||state.fired[name])return;
+    state.fired[name]=true;
+    pixel((state.resolved.tracking||{})[name]);
+    log("video_"+name,(((state.resolved.tracking||{})[name]||[]).length)+" tracking pixel(s)");
+  }
+  function showGam(reason){
+    if(state.startTimer)clearTimeout(state.startTimer);
+    $("banner").innerHTML='<div class="gam"><em>GAM</em><b>Display stage activated</b><small>Open the linked GAM Tester to request the configured Nexbid GAM ad unit.</small></div>';
+    status("Passed to GAM","bad");
+    log("gam_fallback_started",reason,"bad");
+  }
+  function reset(){
+    if(state.controller)state.controller.abort();
+    if(state.startTimer)clearTimeout(state.startTimer);
+    state={entries:[],controller:null,fired:{},resolved:null,startTimer:null};
+    $("facts").innerHTML="";
+    $("banner").style.width="300px";$("banner").style.height="250px";
+    $("banner").innerHTML='<div class="empty"><span class="play">▶</span><b>Ready for one VAST attempt</b><small>GAM remains unloaded until video failure.</small></div>';
+    status("Ready","");
+    renderLogs();
+  }
+  function play(ad,w,h){
+    state.resolved=ad;state.fired={};
+    $("banner").innerHTML="";
+    var video=document.createElement("video");
+    video.src=ad.mediaUrl;video.muted=true;video.autoplay=true;video.playsInline=true;video.preload="auto";
+    $("banner").appendChild(video);
+    video.addEventListener("playing",function(){
+      if(state.startTimer)clearTimeout(state.startTimer);
+      status("Video playing","ok");
+      pixel(ad.impressionUrls);
+      log("video_impression",(ad.impressionUrls||[]).length+" impression pixel(s)","ok");
+      fire("start");
+    });
+    video.addEventListener("timeupdate",function(){
+      if(!video.duration||!isFinite(video.duration))return;
+      var p=video.currentTime/video.duration;
+      if(p>=.25)fire("firstQuartile");if(p>=.5)fire("midpoint");if(p>=.75)fire("thirdQuartile");
+    });
+    video.addEventListener("ended",function(){fire("complete")});
+    video.addEventListener("error",function(){showGam("Video playback error "+(video.error&&video.error.code||"unknown"))});
+    var attempt=video.play();
+    if(attempt&&attempt.catch)attempt.catch(function(error){log("autoplay_rejected",error.message,"bad")});
+    state.startTimer=setTimeout(function(){showGam("Video did not start within 2,000 ms")},2000);
+  }
+  async function run(){
+    reset();
+    var w=Math.max(1,Number($("width").value)||300),h=Math.max(1,Number($("height").value)||250);
+    $("banner").style.width=w+"px";$("banner").style.height=h+"px";$("sizeLabel").textContent=w+" × "+h;
+    var source=expand($("vastUrl").value.trim(),w,h);
+    var timeout=Number($("timeout").value)||5000;
+    var controller=new AbortController();state.controller=controller;
+    var timer=setTimeout(function(){controller.abort()},timeout);
+    $("run").disabled=true;status("Resolving VAST","");log("vast_request",source);
+    try{
+      var endpoint="/api/v1/vast/resolve?allow_vpaid=0&source_name=Playstream&source="+encodeURIComponent(source)+"&cb="+Date.now();
+      var response=await fetch(endpoint,{cache:"no-store",signal:controller.signal});
+      var data=await response.json();
+      clearTimeout(timer);
+      if(!response.ok||!data.ok)throw new Error(data.error||("Resolver HTTP "+response.status));
+      log("vast_resolved",(data.mediaType||"video")+"; "+(data.wrapperDepth||0)+" wrapper(s)","ok");
+      $("facts").innerHTML="<span>"+escapeHtml(data.mediaType||"video")+"</span><span>"+Number(data.wrapperDepth||0)+" wrapper(s)</span><span>"+((data.impressionUrls||[]).length)+" impression tracker(s)</span>";
+      play(data,w,h);
+    }catch(error){
+      clearTimeout(timer);
+      showGam(error&&error.name==="AbortError"?"VAST request timed out after "+timeout+" ms":error.message||String(error));
+    }finally{$("run").disabled=false}
+  }
+  $("run").addEventListener("click",run);
+  $("reset").addEventListener("click",reset);
+  $("clear").addEventListener("click",function(){state.entries=[];renderLogs()});
+  $("copy").addEventListener("click",async function(){
+    var report={createdAt:new Date().toISOString(),vastTag:$("vastUrl").value,pageUrl:$("pageUrl").value,size:[$("width").value,$("height").value],status:$("status").innerText,events:state.entries,resolved:state.resolved};
+    await navigator.clipboard.writeText(JSON.stringify(report,null,2));log("report_copied","Diagnostic JSON copied","ok");
+  });
+})();
+</script>
+</body>
+</html>
