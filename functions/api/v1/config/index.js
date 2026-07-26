@@ -202,7 +202,7 @@ function normalizeConfig(configId, body) {
     legacyBrowserVastFallback: safePricePriority ? false : body.legacyBrowserVastFallback === true,
     maxAuctionCycles: commercialV1 || safePricePriority ? 1 : Number(body.maxAuctionCycles || 1),
     internalRefresh: commercialV1 || safePricePriority ? false : body.internalRefresh === true,
-    auctionBudgetMs: Number(body.auctionBudgetMs || setup.auctionBudgetMs || 1200),
+    auctionBudgetMs: Math.max(10000, Number(body.auctionBudgetMs || setup.auctionBudgetMs || 10000)),
     auctionTimeoutMs: Number(body.auctionTimeoutMs || setup.auctionTimeoutMs || (commercialV1 ? 900 : 1200)),
     partnerTimeoutMs: Number(body.partnerTimeoutMs || setup.partnerTimeoutMs || (commercialV1 ? 750 : 1200)),
     bidTtlMs: Number(body.bidTtlMs || setup.bidTtlMs || 5000),
@@ -256,7 +256,7 @@ function shortTag(configId, config) {
 
 function scriptForProduct(productVersion) {
   if (productVersion === "Version 1 Commercial Unified Auction") return "https://nexbid.uk/nbx/v1.js?v=20260724-6";
-  if (productVersion === "Version 1 Price Priority Safe") return "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-2";
+  if (productVersion === "Version 1 Price Priority Safe") return "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-3";
   if (productVersion === "Version 2 Testing") return "https://nexbid.uk/nexbanner/version-2-testing/src/nexbanner-gam.js";
   if (productVersion === "NexSticky") return "https://nexbid.uk/nexsticky/final/src/nexsticky-gam.js";
   return "https://nexbid.uk/nbx/v1.js?v=20260713-5";
