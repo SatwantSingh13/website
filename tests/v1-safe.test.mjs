@@ -245,6 +245,12 @@ test("production VPAID sends the original expanded VAST tag to IMA", () => {
   assert.match(loader, /vpaidMode:/);
   assert.match(loader, /20260726-4/);
 });
+test("explicit publisher VPAID tag overrides older saved no-VPAID settings", () => {
+  assert.match(player, /const runtimeVpaidOptIn = base\.allowVpaid === true/);
+  assert.match(player, /map\(\(item\) => \(\{ \.\.\.item, allowVpaid: true \}\)\)/);
+  assert.match(player, /allowVpaid: runtimeVpaidOptIn \? true/);
+});
+
 test("publisher tag generator emits the VPAID-capable loader and explicit settings", () => {
   assert.match(dashboard, /v1-price-priority-safe\.js\?v=20260726-2/);
   assert.match(dashboard, /data-allow-vpaid/);
