@@ -40,7 +40,8 @@
     .empty,.gam{display:flex;align-items:center;justify-content:center;flex-direction:column;height:100%;padding:22px;text-align:center;color:white}
     .empty b,.gam b{font-size:15px;margin:11px 0 6px}.empty small,.gam small{font-size:11px;line-height:1.45;color:#adbed3}
     .play{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--blue);padding-left:3px}
-    .gam{background:linear-gradient(145deg,#072854,#0750a1)}.gam em{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--cyan);font-style:normal;font-size:12px;font-weight:900}
+    .gam{background:linear-gradient(145deg,#3b1121,#751f38);justify-content:flex-start;overflow:auto;padding:16px}.gam em{display:grid;place-items:center;width:42px;height:42px;min-height:42px;border-radius:50%;background:var(--red);font-style:normal;font-size:19px;font-weight:900}
+    .gam b{margin:8px 0 4px}.gam .error-code{max-width:100%;border-radius:6px;background:rgba(255,255,255,.13);color:#fff;padding:4px 7px;font:700 10px/1.3 Consolas,monospace;overflow-wrap:anywhere}.gam .error-detail{color:#ffdce5;font-size:10px;line-height:1.35;margin:6px 0;overflow-wrap:anywhere}.gam .error-action{color:#fff;font-size:10px;line-height:1.35}.gam .gam-next{margin-top:7px;color:#ffb8cb;font-size:9px}
     .facts{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.facts span{padding:6px 9px;border-radius:999px;background:#edf6ff;color:#225a8d;font-size:10px;font-weight:850}
     .log-card{grid-column:1/-1}.logs{border:1px solid var(--line);border-radius:13px;overflow:hidden;font:11px/1.4 Consolas,monospace}
     .loghead,.entry{display:grid;grid-template-columns:82px 190px 1fr;gap:13px;padding:10px 13px}
@@ -149,11 +150,36 @@
     pixel((state.resolved.tracking||{})[name]);
     log("video_"+name,(((state.resolved.tracking||{})[name]||[]).length)+" tracking pixel(s)");
   }
+  function errorInfo(reason){
+    var value=String(reason||"unknown_error");
+    var code=value;
+    var explanation="The VAST attempt failed before a playable video could start.";
+    var action="Copy the report and inspect the resolver response.";
+    if(/blocked_url/i.test(value)){code="BLOCKED_URL";explanation="A Playstream wrapper or redirect domain is not on the Nexbid resolver allowlist.";action="Add the exact wrapper hostname to NEXBANNER_VAST_ALLOWED_HOSTS."}
+    else if(/no_media|supported.*media/i.test(value)){code="NO_MEDIA";explanation="The final VAST response contained no supported MP4, WebM, OGG or HLS media.";action="Ask Playstream for a standard non-VPAID MP4 creative and verify hidevpaid=1."}
+    else if(/empty|no.?fill/i.test(value)){code="NO_FILL";explanation="Playstream returned no ad for this request.";action="Confirm publisher, channel, page URL, geography and inventory eligibility with Playstream."}
+    else if(/upstream_http_403/i.test(value)){code="UPSTREAM_HTTP_403";explanation="Playstream or a wrapper refused the Nexbid server request.";action="Ask the partner to allow Nexbid/Cloudflare server requests or provide the required headers."}
+    else if(/upstream_http_429/i.test(value)){code="UPSTREAM_HTTP_429";explanation="The upstream ad server rate-limited the request.";action="Wait and retest, then ask Playstream about request limits."}
+    else if(/upstream_http_/i.test(value)){code=(value.match(/upstream_http_\d+/i)||["UPSTREAM_HTTP_ERROR"])[0].toUpperCase();explanation="The upstream ad server returned an HTTP error.";action="Check the status with Playstream and verify the tag parameters."}
+    else if(/fetch_failed/i.test(value)){code="FETCH_FAILED";explanation="The Nexbid resolver could not connect to Playstream or a wrapper.";action="Check DNS, TLS, redirects and whether the upstream accepts server-side requests."}
+    else if(/wrapper_loop/i.test(value)){code="WRAPPER_LOOP";explanation="The VAST wrapper chain repeated a URL.";action="Send the wrapper chain to Playstream for correction."}
+    else if(/wrapper_limit/i.test(value)){code="WRAPPER_LIMIT";explanation="The VAST response exceeded the maximum wrapper depth.";action="Reduce the wrapper chain or increase the controlled resolver depth."}
+    else if(/timeout/i.test(value)){code="TIMEOUT";explanation="The VAST response, wrapper chain or video start exceeded its time budget.";action="Retest with 5,000 ms and inspect which request was slow."}
+    else if(/playback error 4/i.test(value)){code="MEDIA_NOT_SUPPORTED";explanation="The browser could not play the returned media format or URL.";action="Verify that the MediaFile is a public HTTPS H.264 MP4."}
+    else if(/playback error/i.test(value)){code="VIDEO_PLAYBACK_ERROR";explanation="VAST resolved, but the browser reported a media playback failure.";action="Open the returned MediaFile URL and verify HTTPS, encoding and access."}
+    else if(/did not start/i.test(value)){code="VIDEO_START_TIMEOUT";explanation="The media was found but did not reach the playing event within two seconds.";action="Check media response time or increase the video-start timeout."}
+    else if(/invalid_xml/i.test(value)){code="INVALID_XML";explanation="The upstream response was not valid VAST XML.";action="Send the returned response to Playstream for correction."}
+    return {code:code,detail:value,explanation:explanation,action:action};
+  }
   function showGam(reason){
     if(state.startTimer)clearTimeout(state.startTimer);
-    $("banner").innerHTML='<div class="gam"><em>GAM</em><b>Display stage activated</b><small>Open the linked GAM Tester to request the configured Nexbid GAM ad unit.</small></div>';
-    status("Passed to GAM","bad");
-    log("gam_fallback_started",reason,"bad");
+    var info=errorInfo(reason);
+    $("banner").innerHTML='<div class="gam"><em>!</em><b>Video failed — GAM next</b><span class="error-code">'+escapeHtml(info.code)+'</span><span class="error-detail">'+escapeHtml(info.explanation)+'</span><span class="error-action"><b>Action:</b> '+escapeHtml(info.action)+'</span><span class="gam-next">Raw error: '+escapeHtml(info.detail)+'</span></div>';
+    $("facts").innerHTML='<span>Error: '+escapeHtml(info.code)+'</span><span>Video not delivered</span><span>GAM fallback ready</span>';
+    status("Video error: "+info.code,"bad");
+    log("video_error",info.code+" — "+info.explanation,"bad");
+    log("recommended_action",info.action,"bad");
+    log("gam_fallback_started",info.detail,"bad");
   }
   function reset(){
     if(state.controller)state.controller.abort();
