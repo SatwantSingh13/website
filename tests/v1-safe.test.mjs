@@ -249,12 +249,21 @@ test("production VPAID sends the original expanded VAST tag to IMA", () => {
   assert.match(player, /request\.adTagUrl = expandVastMacros\(ad\.vastTagUrl/);
   assert.match(player, /REFERRER_URL_ESC_ESC/);
   assert.match(loader, /vpaidMode:/);
-  assert.match(loader, /20260726-6/);
+  assert.match(loader, /20260726-7/);
 });
 test("explicit publisher tag can disable VPAID from older saved settings", () => {
   assert.match(loader, /vpaidExplicit:/);
   assert.match(player, /const runtimeVpaidChoice = base\.vpaidExplicit/);
   assert.match(player, /allowVpaid: runtimeVpaidChoice/);
+});
+
+test("Slider preserves the supplied third-party script identity", () => {
+  assert.match(loader, /sliderScriptId:/);
+  assert.match(player, /<script async id=/);
+  assert.match(player, /type="text\/javascript"/);
+  assert.match(player, /slider_render_start/);
+  assert.match(player, /slider_rendered/);
+  assert.match(player, /slider_failed/);
 });
 
 test("production player enforces VAST then Slider then GAM ordering", () => {
@@ -264,11 +273,13 @@ test("production player enforces VAST then Slider then GAM ordering", () => {
 });
 
 test("hosted publisher test page runs standard VAST Slider GAM flow", () => {
-  assert.match(publisherTest, /v1-price-priority-safe\.js\?v=20260726-4/);
+  assert.match(publisherTest, /v1-price-priority-safe\.js\?v=20260726-5/);
   assert.match(publisherTest, /data-allow-vpaid="false"/);
   assert.match(publisherTest, /data-slider-script-url=/);
   assert.match(publisherTest, /display\.b-cdn\.net/);
   assert.match(publisherTest, /data-slider-name="Slider"/);
+  assert.match(publisherTest, /data-slider-script-id="6a60aa7a5a723c4751c109a2"/);
+  assert.match(publisherTest, /data-slider-timeout-ms="8000"/);
   assert.match(publisherTest, /28000/);
 });
 
