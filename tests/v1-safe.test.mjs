@@ -221,6 +221,29 @@ test("browser VAST fetching is compatibility fallback only", () => {
   assert.match(player, /vast_browser_fallback/);
 });
 
+test("production VPAID uses Google IMA with a real muted video element", () => {
+  assert.match(player, /new google\.ima\.AdDisplayContainer\(container, video\)/);
+  assert.match(player, /getAdsManager\(video, settings\)/);
+  assert.match(player, /video\.muted = true/);
+  assert.match(player, /video\.playsInline = true/);
+});
+
+test("production VPAID defaults to friendly iframe and declares muted autoplay", () => {
+  assert.match(player, /vpaidMode: String\(config\.vpaidMode \|\| "insecure"\)/);
+  assert.match(player, /VpaidMode\.INSECURE/);
+  assert.match(player, /request\.setAdWillAutoPlay\(true\)/);
+  assert.match(player, /request\.setAdWillPlayMuted\(true\)/);
+  assert.match(player, /vpaidStartTimeoutMs, 15000/);
+});
+
+test("production VPAID sends the original expanded VAST tag to IMA", () => {
+  assert.match(player, /vastTagUrl: source/);
+  assert.match(player, /request\.adTagUrl = expandVastMacros\(ad\.vastTagUrl/);
+  assert.match(player, /REFERRER_URL_ESC_ESC/);
+  assert.match(loader, /vpaidMode:/);
+  assert.match(loader, /20260726-4/);
+});
+
 test("config GET uses ETag revalidation and controlled cache lifetime", () => {
   assert.match(configGet, /if-none-match/i);
   assert.match(configGet, /status:\s*304/);
