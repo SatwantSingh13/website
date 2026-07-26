@@ -60,16 +60,20 @@ async function loadConfig(base) {
   const response = await fetch(url, { credentials: "omit", cache: "no-cache" });
   if (!response.ok) throw new Error(`config-http-${response.status}`);
   const remote = await response.json();
-  const runtimeVpaidOptIn = base.allowVpaid === true;
+  const runtimeVpaidChoice = base.vpaidExplicit ? base.allowVpaid === true : remote.allowVpaid === true;
   return normalize({
     ...base,
     ...remote,
-    vastDemand: runtimeVpaidOptIn
-      ? array(remote.vastDemand || base.vastDemand).map((item) => ({ ...item, allowVpaid: true }))
+    vastDemand: base.vpaidExplicit
+      ? array(remote.vastDemand || base.vastDemand).map((item) => ({ ...item, allowVpaid: runtimeVpaidChoice }))
       : remote.vastDemand || base.vastDemand,
-    allowVpaid: runtimeVpaidOptIn ? true : remote.allowVpaid,
-    vpaidMode: runtimeVpaidOptIn ? base.vpaidMode : remote.vpaidMode || base.vpaidMode,
-    vpaidStartTimeoutMs: runtimeVpaidOptIn ? base.vpaidStartTimeoutMs : remote.vpaidStartTimeoutMs || base.vpaidStartTimeoutMs,
+    allowVpaid: runtimeVpaidChoice,
+    vpaidMode: runtimeVpaidChoice ? base.vpaidMode : remote.vpaidMode || base.vpaidMode,
+    vpaidStartTimeoutMs: runtimeVpaidChoice ? base.vpaidStartTimeoutMs : remote.vpaidStartTimeoutMs || base.vpaidStartTimeoutMs,
+    sliderScriptUrl: base.sliderScriptUrl || remote.sliderScriptUrl || "",
+    sliderName: base.sliderName || remote.sliderName || "Slider",
+    sliderTimeoutMs: base.sliderTimeoutMs || remote.sliderTimeoutMs || 3000,
+    sliderCpm: base.sliderCpm ?? remote.sliderCpm ?? 0,
     gamClickMacro: base.gamClickMacro || remote.gamClickMacro || "",
     gamCachebuster: base.gamCachebuster || remote.gamCachebuster || "",
     cachebuster: base.cachebuster || remote.cachebuster || ""
@@ -100,6 +104,10 @@ function normalize(config) {
     vastResolverUrl: config.vastResolverUrl || `${config.apiBase}/api/v1/vast/resolve`,
     serverSideVastResolution: config.serverSideVastResolution !== false,
     legacyBrowserVastFallback: config.legacyBrowserVastFallback === true,
+    sliderScriptUrl: config.sliderScriptUrl || "",
+    sliderName: config.sliderName || "Slider",
+    sliderTimeoutMs: finiteNumber(config.sliderTimeoutMs, 3000),
+    sliderCpm: finiteNumber(config.sliderCpm, 0),
     vpaidMode: String(config.vpaidMode || "insecure").toLowerCase() === "enabled" ? "enabled" : "insecure",
     vpaidStartTimeoutMs: finiteNumber(config.vpaidStartTimeoutMs, 15000),
     imaSdkUrl: config.imaSdkUrl || DEFAULT_IMA_SDK_URL
@@ -156,7 +164,9 @@ async function runAuction(root, config, machine, startedAt) {
   track(config, "auction_started", { layer: "auction" });
   const candidates = await collectCandidates(config, machine);
   if (machine.isTerminal()) return;
-  const ordered = candidates.sort((a, b) => b.cpm - a.cpm || a.priority - b.priority);
+  const stageRank = (candidate) => candidate.layer === "vast" ? 0 : candidate.layer === "slider" ? 1 : 2;
+  const ordered = candidates.sort((a, b) =>
+    stageRank(a) - stageRank(b) || b.cpm - a.cpm || a.priority - b.priority);
 
   for (const candidate of ordered) {
     if (machine.isTerminal()) return;
@@ -202,6 +212,18 @@ async function collectCandidates(config, machine) {
   });
   array(config.prebidDemand).forEach((item, index) => tasks.push(jsonCandidate(config, machine, item, "prebid", 100 + index)));
   array(config.ortbDemand).forEach((item, index) => tasks.push(jsonCandidate(config, machine, item, "ortb", 300 + index)));
+  if (config.sliderScriptUrl) {
+    track(config, "partner_request", { layer: "slider", partnerName: config.sliderName });
+    tasks.push(Promise.resolve({
+      adType: "script",
+      scriptUrl: config.sliderScriptUrl,
+      partnerName: config.sliderName,
+      layer: "slider",
+      cpm: config.sliderCpm,
+      priority: 0,
+      timeoutMs: config.sliderTimeoutMs
+    }));
+  }
   const tagItems = [
     ...array(config.displayScriptDemand).map((item) => ({ ...item, tagType: "script" })),
     ...array(config.adserverScriptDemand).map((item) => ({ ...item, tagType: "script" })),
