@@ -33,6 +33,7 @@
     rejectBelowGamRate: boolean(data.rejectBelowGamRate, true),
     priceMismatchTolerance: decimal(data.priceMismatchTolerance, 0),
     allowVpaid: boolean(data.allowVpaid, false),
+    vpaidExplicit: data.allowVpaid !== undefined && data.allowVpaid !== "",
     vpaidMode: String(data.vpaidMode || "insecure").toLowerCase() === "enabled" ? "enabled" : "insecure",
     vpaidStartTimeoutMs: number(data.vpaidStartTimeoutMs, 15000),
     sliderScriptUrl: data.sliderScriptUrl || "",
