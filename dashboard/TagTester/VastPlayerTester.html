@@ -30,7 +30,7 @@
     textarea,input,select{width:100%;border:1px solid #ccd7e4;border-radius:11px;background:#fbfdff;color:var(--ink);padding:11px 12px;outline:none}
     textarea:focus,input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(7,119,248,.1)}
     textarea{min-height:126px;resize:vertical;font:11px/1.5 Consolas,monospace}
-    .field{margin-bottom:13px}.row{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:10px}
+    .field{margin-bottom:13px}.row{display:grid;grid-template-columns:1fr 1fr 1.3fr 1.5fr;gap:10px}
     .help{font-size:11px;color:var(--muted);line-height:1.5;margin-top:6px}
     .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
     .btn{border:0;border-radius:10px;padding:11px 14px;font-weight:850;cursor:pointer}
@@ -86,10 +86,14 @@
         <div class="field"><label for="height">Height</label><input id="height" type="number" value="250"></div>
         <div class="field">
           <label for="timeout">Total test budget</label>
-          <select id="timeout"><option value="2500">2,500 ms</option><option value="3500">3,500 ms</option><option value="5000" selected>5,000 ms</option></select>
+          <select id="timeout"><option value="10000">10,000 ms</option><option value="15000" selected>15,000 ms</option><option value="20000">20,000 ms</option></select>
+        </div>
+        <div class="field">
+          <label for="imaMode">VPAID execution mode</label>
+          <select id="imaMode"><option value="enabled" selected>Secure (ENABLED)</option><option value="insecure">Friendly iframe (INSECURE)</option></select>
         </div>
       </div>
-      <div class="help">This test sends the Playstream tag directly to Google IMA with VPAID 2 enabled. It does not change bidding or GAM. The tag is forced to <code>hidevpaid=0</code>.</div>
+      <div class="help">This test sends the Playstream tag directly to Google IMA with a real muted HTML5 video element. Test Secure and Friendly iframe modes separately; the selected mode and result are written to the event log. Bidding and GAM are unchanged.</div>
       <div class="actions">
         <button class="btn primary" id="run">Run VPAID-only test</button>
         <button class="btn neutral" id="reset">Reset</button>
@@ -121,7 +125,7 @@
 (function(){
   "use strict";
   var $=function(id){return document.getElementById(id)};
-  var state={entries:[],controller:null,fired:{},resolved:null,startTimer:null,adsLoader:null,adsManager:null,adDisplayContainer:null};
+  var state={entries:[],controller:null,fired:{},resolved:null,startTimer:null,adsLoader:null,adsManager:null,adDisplayContainer:null,contentVideo:null,imaMode:null};
   function now(){return new Date().toLocaleTimeString("en-GB",{hour12:false})}
   function log(event,detail,tone){
     state.entries.push({time:now(),event:event,detail:String(detail||""),tone:tone||""});
@@ -187,7 +191,7 @@
     if(state.startTimer)clearTimeout(state.startTimer);
     if(state.adsManager){try{state.adsManager.destroy()}catch(e){}}
     if(state.adsLoader){try{state.adsLoader.destroy()}catch(e){}}
-    state={entries:[],controller:null,fired:{},resolved:null,startTimer:null,adsLoader:null,adsManager:null,adDisplayContainer:null};
+    state={entries:[],controller:null,fired:{},resolved:null,startTimer:null,adsLoader:null,adsManager:null,adDisplayContainer:null,contentVideo:null,imaMode:null};
     $("facts").innerHTML="";
     $("banner").style.width="300px";$("banner").style.height="250px";
     $("banner").innerHTML='<div class="empty"><span class="play">▶</span><b>Ready for one VAST attempt</b><small>GAM remains unloaded until video failure.</small></div>';
@@ -223,14 +227,21 @@
     var w=Math.max(1,Number($("width").value)||300),h=Math.max(1,Number($("height").value)||250);
     $("banner").style.width=w+"px";$("banner").style.height=h+"px";$("sizeLabel").textContent=w+" × "+h;
     var source=expand($("vastUrl").value.trim(),w,h).replace(/([?&])hidevpaid=[^&]*/i,"$1hidevpaid=0");
-    log("vpaid_request",source);
-    status("Requesting VPAID","");
-    $("facts").innerHTML='<span>VPAID enabled</span><span>Waiting for ad</span>';
+    var modeKey=$("imaMode").value;
+    var modeLabel=modeKey==="insecure"?"INSECURE friendly iframe":"ENABLED secure iframe";
+    state.imaMode=modeLabel;
+    log("vpaid_request",modeLabel+" — "+source);
+    log("mode_selected",modeLabel);
+    status("Requesting VPAID — "+modeLabel,"");
+    $("facts").innerHTML='<span>'+escapeHtml(modeLabel)+'</span><span>Muted autoplay declared</span><span>Waiting for ad</span>';
     if(!(window.google&&google.ima)){showGam("IMA_SDK_NOT_LOADED: Google IMA could not be loaded.");return}
-    google.ima.settings.setVpaidMode(google.ima.ImaSdkSettings.VpaidMode.ENABLED);
-    $("banner").innerHTML='<div id="imaAdContainer" style="width:'+w+'px;height:'+h+'px;max-width:100%;margin:auto"></div>';
-    var container=$("imaAdContainer");
-    state.adDisplayContainer=new google.ima.AdDisplayContainer(container);
+    var vpaidMode=modeKey==="insecure"?google.ima.ImaSdkSettings.VpaidMode.INSECURE:google.ima.ImaSdkSettings.VpaidMode.ENABLED;
+    google.ima.settings.setVpaidMode(vpaidMode);
+    $("banner").innerHTML='<video id="contentVideo" muted playsinline preload="auto" aria-label="Muted HTML5 video element"></video><div id="imaAdContainer" style="position:absolute;inset:0;width:100%;height:100%"></div>';
+    var video=$("contentVideo"),container=$("imaAdContainer");
+    video.muted=true;video.defaultMuted=true;video.playsInline=true;
+    state.contentVideo=video;
+    state.adDisplayContainer=new google.ima.AdDisplayContainer(container,video);
     state.adDisplayContainer.initialize();
     state.adsLoader=new google.ima.AdsLoader(state.adDisplayContainer);
     function fail(event){
@@ -238,21 +249,38 @@
       var error=event&&event.getError?event.getError():event;
       var code=error&&error.getErrorCode?error.getErrorCode():"UNKNOWN";
       var message=error&&error.toString?error.toString():String(error||"Unknown IMA error");
-      log("vpaid_error","IMA "+code+" — "+message,"bad");
-      showGam("IMA_AD_ERROR_"+code+": "+message);
+      log("mode_failed",modeLabel+" — IMA "+code,"bad");
+      log("vpaid_error",modeLabel+" — IMA "+code+" — "+message,"bad");
+      showGam("IMA_AD_ERROR_"+code+": ["+modeLabel+"] "+message);
     }
     state.adsLoader.addEventListener(google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,function(event){
       try{
-        state.adsManager=event.getAdsManager(null);
-        [google.ima.AdEvent.Type.LOADED,google.ima.AdEvent.Type.IMPRESSION,google.ima.AdEvent.Type.STARTED,google.ima.AdEvent.Type.FIRST_QUARTILE,google.ima.AdEvent.Type.MIDPOINT,google.ima.AdEvent.Type.THIRD_QUARTILE,google.ima.AdEvent.Type.COMPLETE].forEach(function(type){
+        var renderingSettings=new google.ima.AdsRenderingSettings();
+        renderingSettings.restoreCustomPlaybackStateOnAdBreakComplete=true;
+        state.adsManager=event.getAdsManager(video,renderingSettings);
+        var eventTypes=[
+          google.ima.AdEvent.Type.AD_METADATA,
+          google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED,
+          google.ima.AdEvent.Type.LOADED,
+          google.ima.AdEvent.Type.IMPRESSION,
+          google.ima.AdEvent.Type.STARTED,
+          google.ima.AdEvent.Type.FIRST_QUARTILE,
+          google.ima.AdEvent.Type.MIDPOINT,
+          google.ima.AdEvent.Type.THIRD_QUARTILE,
+          google.ima.AdEvent.Type.COMPLETE,
+          google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED
+        ];
+        eventTypes.forEach(function(type){
           state.adsManager.addEventListener(type,function(){
-            log("ima_"+String(type).toLowerCase(),type,"ok");
+            log("ima_"+String(type).toLowerCase(),modeLabel+" — "+type,"ok");
+            if(type===google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED)video.pause();
             if(type===google.ima.AdEvent.Type.STARTED){
               if(state.startTimer)clearTimeout(state.startTimer);
-              status("VPAID playing","ok");
-              $("facts").innerHTML='<span>VPAID delivered</span><span>IMA secure mode</span>';
+              log("mode_success",modeLabel+" successfully started the ad","ok");
+              status("VPAID playing — "+modeLabel,"ok");
+              $("facts").innerHTML='<span>'+escapeHtml(modeLabel)+'</span><span>VPAID delivered</span><span>Real muted video element</span>';
             }
-            if(type===google.ima.AdEvent.Type.COMPLETE)status("VPAID completed","ok");
+            if(type===google.ima.AdEvent.Type.COMPLETE)status("VPAID completed — "+modeLabel,"ok");
           });
         });
         state.adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR,fail);
@@ -265,10 +293,13 @@
     request.adTagUrl=source;
     request.linearAdSlotWidth=w;request.linearAdSlotHeight=h;
     request.nonLinearAdSlotWidth=w;request.nonLinearAdSlotHeight=h;
-    var budget=Math.max(1000,Number($("timeout").value)||5000);
+    request.setAdWillAutoPlay(true);
+    request.setAdWillPlayMuted(true);
+    var budget=Math.max(10000,Number($("timeout").value)||15000);
     state.startTimer=setTimeout(function(){
+      log("mode_failed",modeLabel+" — start timeout after "+budget+" ms","bad");
       if(state.adsManager){try{state.adsManager.destroy()}catch(e){}}
-      showGam("VPAID_START_TIMEOUT: Google IMA did not start the creative within "+budget+" ms.");
+      showGam("VPAID_START_TIMEOUT: ["+modeLabel+"] Google IMA did not start the creative within "+budget+" ms.");
     },budget);
     try{state.adsLoader.requestAds(request)}catch(err){fail(err)}
   }
