@@ -49,7 +49,7 @@
   target.style.cssText = "width:" + config.width + "px;height:" + config.height + "px;max-width:100%;overflow:hidden;box-sizing:border-box;background:transparent";
 
   var player = new URL("v1-price-priority-safe-player.mjs", script.src);
-  player.searchParams.set("v", "20260726-4");
+  player.searchParams.set("v", "20260726-5");
   var module = document.createElement("script");
   module.type = "module";
   module.src = player.toString();
