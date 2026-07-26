@@ -68,3 +68,19 @@ For an actual GAM test, the publisher must:
 5. Serve that ad unit using Google Publisher Tags on the hosted test page.
 
 This hosted page is for validating the tag, its real network requests, and its render behavior before or alongside the GAM test.
+
+
+## Playstream VAST Player tester
+
+Open:
+
+`/dashboard/TagTester/VastPlayerTester.html`
+
+The tester:
+
+- expands the Playstream GAM-style macros for page URL, cachebuster, width, and height;
+- calls the existing `/api/v1/vast/resolve` server-side resolver;
+- follows VAST wrappers and selects compatible non-VPAID video media;
+- confirms delivery only after the video `playing` event;
+- records impression, start, quartile, completion, error, timeout, and GAM-handoff events;
+- keeps the video and GAM fallback states inside the same banner container.
