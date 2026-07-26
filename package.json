@@ -4,6 +4,11 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check nbx/v1-price-priority-safe.js && node --check nbx/v1-price-priority-safe-player.mjs && node --check nbx/v1-safe-core.mjs && node --check functions/api/v1/config/index.js && node --check functions/api/v1/config/[id].js && node --check functions/api/v1/track.js && node --check functions/api/v1/report.js && node --check functions/api/v1/vast/resolve.js && node --check functions/api/v1/vast/resolver-core.mjs && node --check dashboard/app.js"
+    "check": "node --check nbx/v1-price-priority-safe.js && node --check nbx/v1-price-priority-safe-player.mjs && node --check nbx/v1-safe-core.mjs && node --check functions/api/v1/config/index.js && node --check functions/api/v1/config/[id].js && node --check functions/api/v1/track.js && node --check functions/api/v1/report.js && node --check functions/api/v1/vast/resolve.js && node --check functions/api/v1/vast/resolver-core.mjs && node --check dashboard/app.js",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.114.0"
   }
 }
