@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>NEXBID Playstream VAST Player Tester</title>
+  <title>NEXBID Playstream VPAID Player Tester</title>
+  <script src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
   <style>
     :root{--navy:#071d3b;--blue:#0777f8;--cyan:#20b9ff;--green:#0b9b69;--red:#d34b4b;--ink:#14233b;--muted:#66748b;--line:#dce5f0;--page:#f4f7fb;--white:#fff}
     *{box-sizing:border-box}
@@ -58,8 +59,8 @@
   <header class="hero">
     <div>
       <span class="eyebrow">NEXBANNER DEVELOPMENT LAB</span>
-      <h1>Playstream VAST Player Tester</h1>
-      <p>One banner container, one Playstream VAST attempt, confirmed MP4 playback and a same-frame handoff to the GAM display stage when video does not deliver.</p>
+      <h1>Playstream VPAID Player Tester</h1>
+      <p>Isolated VPAID-only compatibility test using Google IMA secure mode. Bidding, pricing, GAM and the production fallback controller are unchanged.</p>
     </div>
     <div class="status" id="status"><i></i><span>Ready</span></div>
   </header>
@@ -74,7 +75,7 @@
       </div>
       <div class="field">
         <label for="vastUrl">Playstream VAST tag</label>
-        <textarea id="vastUrl">https://servg.playstream.media/api/adserver61/vast/?AV_PUBLISHERID=6a4e1f74e2d7a7b81e065e78&amp;AV_CHANNELID=6a4e6a33978055d8f10fa245&amp;AV_URL=%%REFERRER_URL_ESC_ESC%%&amp;cb=%%CACHEBUSTER%%&amp;AV_WIDTH=%%WIDTH%%&amp;AV_HEIGHT=%%HEIGHT%%&amp;hidevpaid=1&amp;AV_PLCMT=1</textarea>
+        <textarea id="vastUrl">https://servg.playstream.media/api/adserver61/vast/?AV_PUBLISHERID=6a4e1f74e2d7a7b81e065e78&amp;AV_CHANNELID=6a4e6a33978055d8f10fa245&amp;AV_URL=%%REFERRER_URL_ESC_ESC%%&amp;cb=%%CACHEBUSTER%%&amp;AV_WIDTH=%%WIDTH%%&amp;AV_HEIGHT=%%HEIGHT%%&amp;hidevpaid=0&amp;AV_PLCMT=1</textarea>
       </div>
       <div class="field">
         <label for="pageUrl">Publisher page/referrer</label>
@@ -88,9 +89,9 @@
           <select id="timeout"><option value="2500">2,500 ms</option><option value="3500">3,500 ms</option><option value="5000" selected>5,000 ms</option></select>
         </div>
       </div>
-      <div class="help">The request is sent through Nexbid’s existing server-side VAST resolver, which follows wrappers, removes browser CORS dependency and blocks unsupported VPAID when <code>hidevpaid=1</code>.</div>
+      <div class="help">This test sends the Playstream tag directly to Google IMA with VPAID 2 enabled. It does not change bidding or GAM. The tag is forced to <code>hidevpaid=0</code>.</div>
       <div class="actions">
-        <button class="btn primary" id="run">Run Playstream test</button>
+        <button class="btn primary" id="run">Run VPAID-only test</button>
         <button class="btn neutral" id="reset">Reset</button>
         <button class="btn neutral" id="copy">Copy report</button>
       </div>
@@ -100,7 +101,7 @@
       <div class="head"><div><span>02</span><h2>Single banner output</h2></div><b id="sizeLabel">300 × 250</b></div>
       <div class="stage-wrap">
         <div id="banner">
-          <div class="empty"><span class="play">▶</span><b>Ready for one VAST attempt</b><small>GAM remains unloaded until video failure.</small></div>
+          <div class="empty"><span class="play">▶</span><b>Ready for one VPAID attempt</b><small>GAM remains unloaded until video failure.</small></div>
         </div>
       </div>
       <div class="facts" id="facts"></div>
@@ -120,7 +121,7 @@
 (function(){
   "use strict";
   var $=function(id){return document.getElementById(id)};
-  var state={entries:[],controller:null,fired:{},resolved:null,startTimer:null};
+  var state={entries:[],controller:null,fired:{},resolved:null,startTimer:null,adsLoader:null,adsManager:null,adDisplayContainer:null};
   function now(){return new Date().toLocaleTimeString("en-GB",{hour12:false})}
   function log(event,detail,tone){
     state.entries.push({time:now(),event:event,detail:String(detail||""),tone:tone||""});
@@ -184,7 +185,9 @@
   function reset(){
     if(state.controller)state.controller.abort();
     if(state.startTimer)clearTimeout(state.startTimer);
-    state={entries:[],controller:null,fired:{},resolved:null,startTimer:null};
+    if(state.adsManager){try{state.adsManager.destroy()}catch(e){}}
+    if(state.adsLoader){try{state.adsLoader.destroy()}catch(e){}}
+    state={entries:[],controller:null,fired:{},resolved:null,startTimer:null,adsLoader:null,adsManager:null,adDisplayContainer:null};
     $("facts").innerHTML="";
     $("banner").style.width="300px";$("banner").style.height="250px";
     $("banner").innerHTML='<div class="empty"><span class="play">▶</span><b>Ready for one VAST attempt</b><small>GAM remains unloaded until video failure.</small></div>';
@@ -219,24 +222,55 @@
     reset();
     var w=Math.max(1,Number($("width").value)||300),h=Math.max(1,Number($("height").value)||250);
     $("banner").style.width=w+"px";$("banner").style.height=h+"px";$("sizeLabel").textContent=w+" × "+h;
-    var source=expand($("vastUrl").value.trim(),w,h);
-    var timeout=Number($("timeout").value)||5000;
-    var controller=new AbortController();state.controller=controller;
-    var timer=setTimeout(function(){controller.abort()},timeout);
-    $("run").disabled=true;status("Resolving VAST","");log("vast_request",source);
-    try{
-      var endpoint="/api/v1/vast/resolve?allow_vpaid=0&source_name=Playstream&source="+encodeURIComponent(source)+"&cb="+Date.now();
-      var response=await fetch(endpoint,{cache:"no-store",signal:controller.signal});
-      var data=await response.json();
-      clearTimeout(timer);
-      if(!response.ok||!data.ok)throw new Error(data.error||("Resolver HTTP "+response.status));
-      log("vast_resolved",(data.mediaType||"video")+"; "+(data.wrapperDepth||0)+" wrapper(s)","ok");
-      $("facts").innerHTML="<span>"+escapeHtml(data.mediaType||"video")+"</span><span>"+Number(data.wrapperDepth||0)+" wrapper(s)</span><span>"+((data.impressionUrls||[]).length)+" impression tracker(s)</span>";
-      play(data,w,h);
-    }catch(error){
-      clearTimeout(timer);
-      showGam(error&&error.name==="AbortError"?"VAST request timed out after "+timeout+" ms":error.message||String(error));
-    }finally{$("run").disabled=false}
+    var source=expand($("vastUrl").value.trim(),w,h).replace(/([?&])hidevpaid=[^&]*/i,"$1hidevpaid=0");
+    log("vpaid_request",source);
+    status("Requesting VPAID","");
+    $("facts").innerHTML='<span>VPAID enabled</span><span>Waiting for ad</span>';
+    if(!(window.google&&google.ima)){showGam("IMA_SDK_NOT_LOADED: Google IMA could not be loaded.");return}
+    google.ima.settings.setVpaidMode(google.ima.ImaSdkSettings.VpaidMode.ENABLED);
+    $("banner").innerHTML='<div id="imaAdContainer" style="width:'+w+'px;height:'+h+'px;max-width:100%;margin:auto"></div>';
+    var container=$("imaAdContainer");
+    state.adDisplayContainer=new google.ima.AdDisplayContainer(container);
+    state.adDisplayContainer.initialize();
+    state.adsLoader=new google.ima.AdsLoader(state.adDisplayContainer);
+    function fail(event){
+      if(state.startTimer)clearTimeout(state.startTimer);
+      var error=event&&event.getError?event.getError():event;
+      var code=error&&error.getErrorCode?error.getErrorCode():"UNKNOWN";
+      var message=error&&error.toString?error.toString():String(error||"Unknown IMA error");
+      log("vpaid_error","IMA "+code+" — "+message,"bad");
+      showGam("IMA_AD_ERROR_"+code+": "+message);
+    }
+    state.adsLoader.addEventListener(google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,function(event){
+      try{
+        state.adsManager=event.getAdsManager(null);
+        [google.ima.AdEvent.Type.LOADED,google.ima.AdEvent.Type.IMPRESSION,google.ima.AdEvent.Type.STARTED,google.ima.AdEvent.Type.FIRST_QUARTILE,google.ima.AdEvent.Type.MIDPOINT,google.ima.AdEvent.Type.THIRD_QUARTILE,google.ima.AdEvent.Type.COMPLETE].forEach(function(type){
+          state.adsManager.addEventListener(type,function(){
+            log("ima_"+String(type).toLowerCase(),type,"ok");
+            if(type===google.ima.AdEvent.Type.STARTED){
+              if(state.startTimer)clearTimeout(state.startTimer);
+              status("VPAID playing","ok");
+              $("facts").innerHTML='<span>VPAID delivered</span><span>IMA secure mode</span>';
+            }
+            if(type===google.ima.AdEvent.Type.COMPLETE)status("VPAID completed","ok");
+          });
+        });
+        state.adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR,fail);
+        state.adsManager.init(w,h,google.ima.ViewMode.NORMAL);
+        state.adsManager.start();
+      }catch(err){fail(err)}
+    },false);
+    state.adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR,fail,false);
+    var request=new google.ima.AdsRequest();
+    request.adTagUrl=source;
+    request.linearAdSlotWidth=w;request.linearAdSlotHeight=h;
+    request.nonLinearAdSlotWidth=w;request.nonLinearAdSlotHeight=h;
+    var budget=Math.max(1000,Number($("timeout").value)||5000);
+    state.startTimer=setTimeout(function(){
+      if(state.adsManager){try{state.adsManager.destroy()}catch(e){}}
+      showGam("VPAID_START_TIMEOUT: Google IMA did not start the creative within "+budget+" ms.");
+    },budget);
+    try{state.adsLoader.requestAds(request)}catch(err){fail(err)}
   }
   $("run").addEventListener("click",run);
   $("reset").addEventListener("click",reset);
