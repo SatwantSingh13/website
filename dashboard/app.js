@@ -491,6 +491,9 @@
       '  data-height="' + config.setup.height + '"',
       '  data-gam-click="%%CLICK_URL_UNESC%%"',
       '  data-gam-cachebuster="%%CACHEBUSTER%%"',
+      config.allowVpaid ? '  data-allow-vpaid="true"' : '',
+      config.allowVpaid ? '  data-vpaid-mode="insecure"' : '',
+      config.allowVpaid ? '  data-vpaid-start-timeout-ms="15000"' : '',
       '  data-api-base="' + trimSlash(config.setup.apiBase) + '">',
       "</script>"
     ].join("\n");
@@ -604,18 +607,20 @@
       priceMismatchTolerance: numberOr(els.priceMismatchTolerance.value, 0),
       gamClickMacro: "%%CLICK_URL_UNESC%%",
       gamCachebuster: "%%CACHEBUSTER%%",
-      allowVpaid: els.allowVpaid.checked
+      allowVpaid: els.allowVpaid.checked,
+      vpaidMode: "insecure",
+      vpaidStartTimeoutMs: 15000
     };
   }
 
   function applySafePreset() {
-    els.cdnScript.value = "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260724-1";
+    els.cdnScript.value = "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-2";
     els.viewabilityThreshold.value = "0.5";
     els.viewabilityTimeMs.value = "1000";
     els.viewabilityWaitTimeoutMs.value = "15000";
     els.enablePassback.checked = true;
     els.rejectBelowGamRate.checked = true;
-    els.allowVpaid.checked = false;
+    els.allowVpaid.checked = true;
     els.safeConfigId.value = placementConfigId();
     updatePriceWarning();
     generateTag();
