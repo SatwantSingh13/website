@@ -55,7 +55,7 @@
   target.style.cssText = "width:" + config.width + "px;height:" + config.height + "px;max-width:100%;overflow:hidden;box-sizing:border-box;background:transparent";
 
   var player = new URL("v1-price-priority-safe-player.mjs", script.src);
-  player.searchParams.set("v", String(config.configId || "").toLowerCase() === "moneycontrol.com" ? "20260726-8" : "20260726-7");
+  player.searchParams.set("v", String(config.configId || "").toLowerCase() === "moneycontrol.com" ? "20260726-9" : "20260726-7");
   var module = document.createElement("script");
   module.type = "module";
   module.src = player.toString();
