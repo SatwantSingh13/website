@@ -89,7 +89,7 @@ function normalize(config) {
     viewabilityTimeMs: finiteNumber(config.viewabilityTimeMs, 1000),
     viewabilityWaitTimeoutMs: finiteNumber(config.viewabilityWaitTimeoutMs, 15000),
     auctionOnViewabilityTimeout: config.auctionOnViewabilityTimeout === true,
-    auctionBudgetMs: finiteNumber(config.auctionBudgetMs, 1200),
+    auctionBudgetMs: Math.max(10000, finiteNumber(config.auctionBudgetMs, 10000)),
     passbackTimeoutMs: finiteNumber(config.passbackTimeoutMs, 2000),
     enablePassback: config.enablePassback === true,
     collapseOnPassbackFailure: config.collapseOnPassbackFailure === true,
