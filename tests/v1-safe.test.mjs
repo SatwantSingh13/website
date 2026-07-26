@@ -249,28 +249,28 @@ test("production VPAID sends the original expanded VAST tag to IMA", () => {
   assert.match(player, /request\.adTagUrl = expandVastMacros\(ad\.vastTagUrl/);
   assert.match(player, /REFERRER_URL_ESC_ESC/);
   assert.match(loader, /vpaidMode:/);
-  assert.match(loader, /20260726-5/);
+  assert.match(loader, /20260726-6/);
 });
-test("explicit publisher VPAID tag overrides older saved no-VPAID settings", () => {
-  assert.match(player, /const runtimeVpaidOptIn = base\.allowVpaid === true/);
-  assert.match(player, /map\(\(item\) => \(\{ \.\.\.item, allowVpaid: true \}\)\)/);
-  assert.match(player, /allowVpaid: runtimeVpaidOptIn \? true/);
-});
-
-test("publisher tag generator emits the VPAID-capable loader and explicit settings", () => {
-  assert.match(dashboard, /v1-price-priority-safe\.js\?v=20260726-3/);
-  assert.match(dashboard, /data-allow-vpaid/);
-  assert.match(dashboard, /data-vpaid-mode/);
-  assert.match(dashboard, /data-vpaid-start-timeout-ms/);
+test("explicit publisher tag can disable VPAID from older saved settings", () => {
+  assert.match(loader, /vpaidExplicit:/);
+  assert.match(player, /const runtimeVpaidChoice = base\.vpaidExplicit/);
+  assert.match(player, /allowVpaid: runtimeVpaidChoice/);
 });
 
-test("hosted publisher test page runs the production VPAID tag", () => {
-  assert.match(publisherTest, /v1-price-priority-safe\.js\?v=20260726-3/);
-  assert.match(publisherTest, /data-allow-vpaid="true"/);
-  assert.match(publisherTest, /data-vpaid-mode="insecure"/);
-  assert.match(publisherTest, /data-vpaid-start-timeout-ms="15000"/);
+test("production player enforces VAST then Slider then GAM ordering", () => {
+  assert.match(player, /candidate\.layer === "vast" \? 0 : candidate\.layer === "slider" \? 1 : 2/);
+  assert.match(player, /layer: "slider"/);
+  assert.match(loader, /sliderScriptUrl:/);
 });
 
+test("hosted publisher test page runs standard VAST Slider GAM flow", () => {
+  assert.match(publisherTest, /v1-price-priority-safe\.js\?v=20260726-4/);
+  assert.match(publisherTest, /data-allow-vpaid="false"/);
+  assert.match(publisherTest, /data-slider-script-url=/);
+  assert.match(publisherTest, /display\.b-cdn\.net/);
+  assert.match(publisherTest, /data-slider-name="Slider"/);
+  assert.match(publisherTest, /28000/);
+});
 
 test("config GET uses ETag revalidation and controlled cache lifetime", () => {
   assert.match(configGet, /if-none-match/i);
