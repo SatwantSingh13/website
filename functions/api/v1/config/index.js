@@ -100,7 +100,7 @@ function normalizeConfig(configId, body) {
     floorCpm: item.floorCpm || "",
     currency: item.currency || (commercialV1 ? "USD" : ""),
     timeoutMs: item.timeoutMs || "",
-    allowVpaid: safePricePriority ? item.allowVpaid === true : item.allowVpaid !== false,
+    allowVpaid: safePricePriority ? (item.allowVpaid === true || (item.allowVpaid == null && body.allowVpaid === true)) : item.allowVpaid !== false,
   })).filter((item) => item.endpoint);
   const displayScriptDemand = displayTags.map((item) => ({
     name: item.name || "",

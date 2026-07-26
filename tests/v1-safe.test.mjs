@@ -18,6 +18,8 @@ const immutableLegacyLoader = await readFile(new URL("../nbx/v1-legacy-20260713-
 const configGet = await readFile(new URL("../functions/api/v1/config/[id].js", import.meta.url), "utf8");
 const configPost = await readFile(new URL("../functions/api/v1/config/index.js", import.meta.url), "utf8");
 const track = await readFile(new URL("../functions/api/v1/track.js", import.meta.url), "utf8");
+const dashboard = await readFile(new URL("../dashboard/app.js", import.meta.url), "utf8");
+const publisherTest = await readFile(new URL("../dashboard/TagTester/index.html", import.meta.url), "utf8");
 
 test("auction cannot start before waiting-for-viewability", () => {
   const state = new RequestState("r1");
@@ -243,6 +245,26 @@ test("production VPAID sends the original expanded VAST tag to IMA", () => {
   assert.match(loader, /vpaidMode:/);
   assert.match(loader, /20260726-4/);
 });
+test("explicit publisher VPAID tag overrides older saved no-VPAID settings", () => {
+  assert.match(player, /const runtimeVpaidOptIn = base\.allowVpaid === true/);
+  assert.match(player, /map\(\(item\) => \(\{ \.\.\.item, allowVpaid: true \}\)\)/);
+  assert.match(player, /allowVpaid: runtimeVpaidOptIn \? true/);
+});
+
+test("publisher tag generator emits the VPAID-capable loader and explicit settings", () => {
+  assert.match(dashboard, /v1-price-priority-safe\.js\?v=20260726-2/);
+  assert.match(dashboard, /data-allow-vpaid/);
+  assert.match(dashboard, /data-vpaid-mode/);
+  assert.match(dashboard, /data-vpaid-start-timeout-ms/);
+});
+
+test("hosted publisher test page runs the production VPAID tag", () => {
+  assert.match(publisherTest, /v1-price-priority-safe\.js\?v=20260726-2/);
+  assert.match(publisherTest, /data-allow-vpaid="true"/);
+  assert.match(publisherTest, /data-vpaid-mode="insecure"/);
+  assert.match(publisherTest, /data-vpaid-start-timeout-ms="15000"/);
+});
+
 
 test("config GET uses ETag revalidation and controlled cache lifetime", () => {
   assert.match(configGet, /if-none-match/i);
