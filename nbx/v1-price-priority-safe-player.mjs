@@ -425,7 +425,8 @@ async function renderCandidate(root, config, machine, candidate) {
   }
   if (candidate.mediaUrl && candidate.adType !== "vpaid-js") return renderVideo(root, config, machine, candidate);
   if (candidate.imageUrl) return renderImage(root, config, machine, candidate);
-  if (candidate.html || candidate.scriptUrl) return renderFrame(root, config, machine, candidate);
+  const moneycontrolFrame = String(config.configId || "").toLowerCase() === "moneycontrol.com" && candidate.frameUrl;
+  if (candidate.html || candidate.scriptUrl || moneycontrolFrame) return renderFrame(root, config, machine, candidate);
   return { filled: false, reason: "unsupported-candidate" };
 }
 
