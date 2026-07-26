@@ -615,13 +615,13 @@
   }
 
   function applySafePreset() {
-    els.cdnScript.value = "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-3";
+    els.cdnScript.value = "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-4";
     els.viewabilityThreshold.value = "0.5";
     els.viewabilityTimeMs.value = "1000";
     els.viewabilityWaitTimeoutMs.value = "15000";
     els.enablePassback.checked = true;
     els.rejectBelowGamRate.checked = true;
-    els.allowVpaid.checked = true;
+    els.allowVpaid.checked = false;
     els.safeConfigId.value = placementConfigId();
     updatePriceWarning();
     generateTag();
