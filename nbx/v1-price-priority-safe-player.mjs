@@ -60,9 +60,16 @@ async function loadConfig(base) {
   const response = await fetch(url, { credentials: "omit", cache: "no-cache" });
   if (!response.ok) throw new Error(`config-http-${response.status}`);
   const remote = await response.json();
+  const runtimeVpaidOptIn = base.allowVpaid === true;
   return normalize({
     ...base,
     ...remote,
+    vastDemand: runtimeVpaidOptIn
+      ? array(remote.vastDemand || base.vastDemand).map((item) => ({ ...item, allowVpaid: true }))
+      : remote.vastDemand || base.vastDemand,
+    allowVpaid: runtimeVpaidOptIn ? true : remote.allowVpaid,
+    vpaidMode: runtimeVpaidOptIn ? base.vpaidMode : remote.vpaidMode || base.vpaidMode,
+    vpaidStartTimeoutMs: runtimeVpaidOptIn ? base.vpaidStartTimeoutMs : remote.vpaidStartTimeoutMs || base.vpaidStartTimeoutMs,
     gamClickMacro: base.gamClickMacro || remote.gamClickMacro || "",
     gamCachebuster: base.gamCachebuster || remote.gamCachebuster || "",
     cachebuster: base.cachebuster || remote.cachebuster || ""
