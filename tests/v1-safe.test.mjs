@@ -189,8 +189,8 @@ test("player enforces 50 percent for 1000 ms and pauses hidden tabs", () => {
   assert.match(player, /reset\(\)/);
 });
 
-test("video candidate collection budget cannot be shorter than ten seconds", () => {
-  assert.match(player, /auctionBudgetMs: Math\.max\(10000/);
+test("Moneycontrol VAST candidate collection is capped at ten seconds", () => {
+  assert.match(player, /auctionBudgetMs: Math\.min\(10000/);
   assert.match(configPost, /auctionBudgetMs: Math\.max\(10000/);
   assert.match(dashboard, /auctionBudgetMs: 10000/);
 });
@@ -270,6 +270,12 @@ test("production player enforces VAST then Slider then GAM ordering", () => {
   assert.match(player, /candidate\.layer === "vast" \? 0 : candidate\.layer === "slider" \? 1 : 2/);
   assert.match(player, /layer: "slider"/);
   assert.match(loader, /sliderScriptUrl:/);
+});
+
+test("Moneycontrol renders the fixed GAM frame URL as the final candidate", () => {
+  assert.match(player, /String\(config\.configId \|\| ""\)\.toLowerCase\(\) === "moneycontrol\.com" && candidate\.frameUrl/);
+  assert.match(player, /candidate\.html \|\| candidate\.scriptUrl \|\| moneycontrolFrame/);
+  assert.match(loader, /moneycontrol\.com" \? "20260726-9" : "20260726-7"/);
 });
 
 test("hosted publisher test page runs standard VAST Slider GAM flow", () => {
