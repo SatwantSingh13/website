@@ -72,7 +72,8 @@ async function loadConfig(base) {
     vpaidStartTimeoutMs: runtimeVpaidChoice ? base.vpaidStartTimeoutMs : remote.vpaidStartTimeoutMs || base.vpaidStartTimeoutMs,
     sliderScriptUrl: base.sliderScriptUrl || remote.sliderScriptUrl || "",
     sliderName: base.sliderName || remote.sliderName || "Slider",
-    sliderTimeoutMs: base.sliderTimeoutMs || remote.sliderTimeoutMs || 3000,
+    sliderScriptId: base.sliderScriptId || remote.sliderScriptId || "",
+    sliderTimeoutMs: base.sliderTimeoutMs || remote.sliderTimeoutMs || 8000,
     sliderCpm: base.sliderCpm ?? remote.sliderCpm ?? 0,
     gamClickMacro: base.gamClickMacro || remote.gamClickMacro || "",
     gamCachebuster: base.gamCachebuster || remote.gamCachebuster || "",
@@ -106,7 +107,8 @@ function normalize(config) {
     legacyBrowserVastFallback: config.legacyBrowserVastFallback === true,
     sliderScriptUrl: config.sliderScriptUrl || "",
     sliderName: config.sliderName || "Slider",
-    sliderTimeoutMs: finiteNumber(config.sliderTimeoutMs, 3000),
+    sliderScriptId: config.sliderScriptId || "",
+    sliderTimeoutMs: finiteNumber(config.sliderTimeoutMs, 8000),
     sliderCpm: finiteNumber(config.sliderCpm, 0),
     vpaidMode: String(config.vpaidMode || "insecure").toLowerCase() === "enabled" ? "enabled" : "insecure",
     vpaidStartTimeoutMs: finiteNumber(config.vpaidStartTimeoutMs, 15000),
@@ -183,6 +185,9 @@ async function runAuction(root, config, machine, startedAt) {
       continue;
     }
     track(config, "winner_selected", { layer: candidate.layer, partnerName: candidate.partnerName, cpm: candidate.cpm });
+    if (candidate.layer === "slider") {
+      track(config, "slider_render_start", { layer: "slider", partnerName: candidate.partnerName });
+    }
     if (machine.state === "auctioning" && !machine.transition("rendering")) return;
     let result;
     try {
@@ -197,8 +202,14 @@ async function runAuction(root, config, machine, startedAt) {
     }
     if (machine.isTerminal()) return;
     if (result.filled) {
+      if (candidate.layer === "slider") {
+        track(config, "slider_rendered", { layer: "slider", partnerName: candidate.partnerName });
+      }
       finishPaidRequest(config, machine, candidate, startedAt, auctionStarted);
       return;
+    }
+    if (candidate.layer === "slider") {
+      track(config, "slider_failed", { layer: "slider", partnerName: candidate.partnerName, reason: result.reason || "slider-no-fill" });
     }
     array(candidate.errorUrls).forEach(pixel);
   }
@@ -215,7 +226,8 @@ async function collectCandidates(config, machine) {
   if (config.sliderScriptUrl) {
     track(config, "partner_request", { layer: "slider", partnerName: config.sliderName });
     tasks.push(Promise.resolve({
-      adType: "script",
+      adType: "html",
+      html: `<script async id="${escapeAttribute(config.sliderScriptId)}" type="text/javascript" src="${escapeAttribute(safeHttpUrl(config.sliderScriptUrl))}"><\/script>`,
       scriptUrl: config.sliderScriptUrl,
       partnerName: config.sliderName,
       layer: "slider",
