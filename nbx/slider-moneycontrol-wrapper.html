@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="unsafe-url">
+<meta name="viewport" content="width=300,initial-scale=1">
+<style>html,body{margin:0;width:300px;height:250px;overflow:hidden;background:transparent}body>*{max-width:300px;max-height:250px}</style>
+</head>
+<body>
+<script>
+(function () {
+  "use strict";
+  var token = new URLSearchParams(location.search).get("token") || "";
+  var finished = false;
+  function send(filled, reason) {
+    if (finished) return;
+    finished = true;
+    parent.postMessage({ token: token, filled: filled === true, reason: reason || "" }, "*");
+  }
+  function visibleCreative() {
+    var nodes = document.body.querySelectorAll("iframe,img,video,canvas,object,embed");
+    for (var i = 0; i < nodes.length; i += 1) {
+      var node = nodes[i];
+      var rect = node.getBoundingClientRect();
+      var style = getComputedStyle(node);
+      if (rect.width > 10 && rect.height > 10 && style.display !== "none" &&
+          style.visibility !== "hidden" && Number(style.opacity) !== 0) return true;
+    }
+    return false;
+  }
+  var poll = setInterval(function () {
+    if (visibleCreative()) {
+      clearInterval(poll);
+      send(true, "");
+    }
+  }, 100);
+  setTimeout(function () {
+    clearInterval(poll);
+    send(false, "slider-timeout");
+  }, 5000);
+})();
+</script>
+<script async id="6a60aa7a5a723c4751c109a2" type="text/javascript" src="https://display.b-cdn.net/scripts/loader.js?file=6a60a9bb5a723c4751c108a6-6a60aa7a5a723c4751c109a2"></script>
+</body>
+</html>
