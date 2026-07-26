@@ -131,7 +131,7 @@ test("commercial config excludes Prebid and ORTB and returns the new tag", async
   assert.equal(saved.vastDemand[0].currency, "USD");
   assert.equal(saved.displayScriptDemand[0].configuredBidCpm, "0.20");
   assert.equal(saved.displayDemand[0].endpoint, "https://demand.example/display");
-  assert.equal(saved.viewabilityThreshold, 0.3);
+  assert.equal(saved.viewabilityThreshold, 0.2);
   assert.equal(saved.viewabilityTimeMs, 200);
   assert.equal(saved.auctionTimeoutMs, 900);
   assert.equal(saved.partnerTimeoutMs, 750);
