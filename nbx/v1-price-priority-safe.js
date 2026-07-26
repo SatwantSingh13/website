@@ -33,6 +33,9 @@
     rejectBelowGamRate: boolean(data.rejectBelowGamRate, true),
     priceMismatchTolerance: decimal(data.priceMismatchTolerance, 0),
     allowVpaid: boolean(data.allowVpaid, false),
+    vpaidMode: String(data.vpaidMode || "insecure").toLowerCase() === "enabled" ? "enabled" : "insecure",
+    vpaidStartTimeoutMs: number(data.vpaidStartTimeoutMs, 15000),
+    publisherPageUrl: data.publisherPageUrl || document.referrer || location.href,
     cachebuster: data.gamCachebuster || String(Date.now())
   };
 
@@ -46,7 +49,7 @@
   target.style.cssText = "width:" + config.width + "px;height:" + config.height + "px;max-width:100%;overflow:hidden;box-sizing:border-box;background:transparent";
 
   var player = new URL("v1-price-priority-safe-player.mjs", script.src);
-  player.searchParams.set("v", "20260724-3");
+  player.searchParams.set("v", "20260726-4");
   var module = document.createElement("script");
   module.type = "module";
   module.src = player.toString();

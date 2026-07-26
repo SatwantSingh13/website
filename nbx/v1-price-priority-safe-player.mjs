@@ -1,6 +1,8 @@
 import { RequestState, candidateAllowed, finiteNumber, prependGamClick } from "./v1-safe-core.mjs";
 
 const TERMINALS = new Set(["filled", "passed-back", "no-fill", "cancelled", "error"]);
+const DEFAULT_IMA_SDK_URL = "https://imasdk.googleapis.com/js/sdkloader/ima3.js";
+let imaSdkPromise;
 
 window.NexBannerPricePrioritySafe = { mount };
 
@@ -90,7 +92,10 @@ function normalize(config) {
     priceMismatchTolerance: finiteNumber(config.priceMismatchTolerance, 0),
     vastResolverUrl: config.vastResolverUrl || `${config.apiBase}/api/v1/vast/resolve`,
     serverSideVastResolution: config.serverSideVastResolution !== false,
-    legacyBrowserVastFallback: config.legacyBrowserVastFallback === true
+    legacyBrowserVastFallback: config.legacyBrowserVastFallback === true,
+    vpaidMode: String(config.vpaidMode || "insecure").toLowerCase() === "enabled" ? "enabled" : "insecure",
+    vpaidStartTimeoutMs: finiteNumber(config.vpaidStartTimeoutMs, 15000),
+    imaSdkUrl: config.imaSdkUrl || DEFAULT_IMA_SDK_URL
   };
 }
 
@@ -258,7 +263,7 @@ async function vastCandidate(config, machine, item, index) {
   }
   if (machine.isTerminal()) throw new Error("late-vast-callback");
   track(config, "candidate_received", { layer: "vast", partnerName, cpm: ad.cpm });
-  return { ...ad, partnerName, layer: "vast", cpm: finiteNumber(ad.cpm, item.floorCpm), priority: index };
+  return { ...ad, vastTagUrl: source, partnerName, layer: "vast", cpm: finiteNumber(ad.cpm, item.floorCpm), priority: index };
 }
 
 async function resolveVastInBrowser(source, options, depth = 0, seen = new Set()) {
@@ -308,9 +313,16 @@ async function resolveVastInBrowser(source, options, depth = 0, seen = new Set()
   };
 }
 
-function expandVastMacros(value, cachebuster) {
+function expandVastMacros(value, cachebuster, config = {}) {
+  const pageUrl = String(config.publisherPageUrl || document.referrer || window.location.href);
+  const width = String(config.width || 300);
+  const height = String(config.height || 250);
   return String(value || "")
-    .replace(/\[(?:CACHEBUSTING|CACHEBUSTER)\]|%%CACHEBUSTER%%|\[RANDOM\]/gi, encodeURIComponent(String(cachebuster || Date.now())));
+    .replace(/\[(?:CACHEBUSTING|CACHEBUSTER)\]|%%CACHEBUSTER%%|%%CACHE_BUSTER%%|\[RANDOM\]/gi, encodeURIComponent(String(cachebuster || Date.now())))
+    .replace(/%%WIDTH%%/gi, encodeURIComponent(width))
+    .replace(/%%HEIGHT%%/gi, encodeURIComponent(height))
+    .replace(/%%REFERRER_URL_ESC_ESC%%/gi, encodeURIComponent(encodeURIComponent(pageUrl)))
+    .replace(/%%REFERRER_URL_ESC%%/gi, encodeURIComponent(pageUrl));
 }
 
 async function jsonCandidate(config, machine, item, layer, priority) {
@@ -338,53 +350,131 @@ async function renderCandidate(root, config, machine, candidate) {
 }
 
 function renderVpaid(root, config, machine, ad) {
-  return new Promise((resolve) => {
+  return loadImaSdk(config.imaSdkUrl).then(() => new Promise((resolve) => {
     clear(root);
-    const frame = document.createElement("iframe");
-    const token = makeId();
+    const modeName = config.vpaidMode === "enabled" ? "ENABLED" : "INSECURE";
+    const video = document.createElement("video");
+    const container = document.createElement("div");
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+    video.style.cssText = "display:block;width:100%;height:100%;object-fit:contain";
+    container.style.cssText = "position:absolute;inset:0;width:100%;height:100%";
+    root.appendChild(video);
+    root.appendChild(container);
+
+    const mode = config.vpaidMode === "enabled"
+      ? google.ima.ImaSdkSettings.VpaidMode.ENABLED
+      : google.ima.ImaSdkSettings.VpaidMode.INSECURE;
+    google.ima.settings.setVpaidMode(mode);
+    track(config, "vpaid_mode_selected", { layer: "vast", partnerName: ad.partnerName, reason: modeName });
+
+    const display = new google.ima.AdDisplayContainer(container, video);
+    const loader = new google.ima.AdsLoader(display);
+    let manager = null;
     let settled = false;
-    frame.width = config.width;
-    frame.height = config.height;
-    frame.title = "Advertisement";
-    frame.setAttribute("frameborder", "0");
-    frame.setAttribute("scrolling", "no");
-    frame.setAttribute("sandbox", "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox");
+    let started = false;
     let timer = 0;
-    const cleanup = () => {
+
+    const destroy = () => {
       clearTimeout(timer);
-      window.removeEventListener("message", listener);
+      try { manager?.destroy(); } catch (_) {}
+      try { loader.destroy(); } catch (_) {}
     };
     const finish = (filled, reason) => {
       if (settled) return;
       settled = true;
-      if (!filled) cleanup();
-      else {
-        clearTimeout(timer);
-        timer = setTimeout(cleanup, 120000);
+      clearTimeout(timer);
+      if (!filled) {
+        destroy();
+        clear(root);
       }
       resolve({ filled, reason });
     };
-    const listener = (event) => {
-      const data = event.data || {};
-      if (event.source !== frame.contentWindow || data.token !== token || data.type !== "nbx-vpaid") return;
-      if (data.event === "started") finish(true, "");
-      else if (data.event === "complete") {
-        track(config, "video_complete", { layer: "vast", partnerName: ad.partnerName });
-        cleanup();
-      } else if (data.event === "error") finish(false, data.reason || "vpaid-error");
+    const fail = (event) => {
+      const error = event?.getError ? event.getError() : event;
+      const code = error?.getErrorCode ? error.getErrorCode() : "unknown";
+      const reason = `ima-${code}-${String(error?.toString?.() || error || "vpaid-error")}`;
+      track(config, "vpaid_error", { layer: "vast", partnerName: ad.partnerName, reason });
+      finish(false, reason);
     };
-    timer = setTimeout(() => finish(false, "vpaid-timeout"), Math.max(1000, finiteNumber(ad.timeoutMs, 4000)));
-    window.addEventListener("message", listener);
-    root.appendChild(frame);
-    frame.srcdoc = vpaidDocument(ad, config, token);
+
+    loader.addEventListener(google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED, (event) => {
+      try {
+        const settings = new google.ima.AdsRenderingSettings();
+        settings.restoreCustomPlaybackStateOnAdBreakComplete = true;
+        manager = event.getAdsManager(video, settings);
+        manager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, fail);
+        manager.addEventListener(google.ima.AdEvent.Type.LOADED, () => {
+          track(config, "vpaid_loaded", { layer: "vast", partnerName: ad.partnerName, reason: modeName });
+        });
+        manager.addEventListener(google.ima.AdEvent.Type.STARTED, () => {
+          started = true;
+          track(config, "vpaid_mode_success", { layer: "vast", partnerName: ad.partnerName, reason: modeName });
+          track(config, "video_start", { layer: "vast", partnerName: ad.partnerName });
+          finish(true, "");
+        });
+        manager.addEventListener(google.ima.AdEvent.Type.FIRST_QUARTILE, () =>
+          track(config, "video_firstQuartile", { layer: "vast", partnerName: ad.partnerName }));
+        manager.addEventListener(google.ima.AdEvent.Type.MIDPOINT, () =>
+          track(config, "video_midpoint", { layer: "vast", partnerName: ad.partnerName }));
+        manager.addEventListener(google.ima.AdEvent.Type.THIRD_QUARTILE, () =>
+          track(config, "video_thirdQuartile", { layer: "vast", partnerName: ad.partnerName }));
+        manager.addEventListener(google.ima.AdEvent.Type.COMPLETE, () => {
+          track(config, "video_complete", { layer: "vast", partnerName: ad.partnerName });
+          destroy();
+        });
+        manager.init(config.width, config.height, google.ima.ViewMode.NORMAL);
+        manager.start();
+      } catch (error) {
+        fail(error);
+      }
+    }, false);
+    loader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, fail, false);
+
+    const request = new google.ima.AdsRequest();
+    request.adTagUrl = expandVastMacros(ad.vastTagUrl || "", config.gamCachebuster || config.cachebuster, config);
+    request.linearAdSlotWidth = config.width;
+    request.linearAdSlotHeight = config.height;
+    request.nonLinearAdSlotWidth = config.width;
+    request.nonLinearAdSlotHeight = config.height;
+    request.setAdWillAutoPlay(true);
+    request.setAdWillPlayMuted(true);
+
+    timer = setTimeout(() => {
+      if (started) return;
+      track(config, "vpaid_timeout", { layer: "vast", partnerName: ad.partnerName, reason: modeName });
+      finish(false, "vpaid-start-timeout");
+    }, Math.max(10000, config.vpaidStartTimeoutMs));
+
+    try {
+      display.initialize();
+      loader.requestAds(request);
+    } catch (error) {
+      fail(error);
+    }
+  })).catch((error) => {
+    const reason = error?.message || "ima-sdk-load-error";
+    track(config, "vpaid_error", { layer: "vast", partnerName: ad.partnerName, reason });
+    return { filled: false, reason };
   });
 }
 
-function vpaidDocument(ad, config, token) {
-  const media = JSON.stringify(safeHttpUrl(ad.mediaUrl));
-  const params = JSON.stringify(String(ad.adParameters || ""));
-  const tokenJson = JSON.stringify(token);
-  return `<!doctype html><html><head><meta charset="utf-8"><style>html,body,#slot,video{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}</style></head><body><div id="slot"><video id="video" muted playsinline></video></div><script>(function(){var token=${tokenJson},ad,done=false;function send(event,reason){parent.postMessage({type:"nbx-vpaid",token:token,event:event,reason:reason||""},"*")}function fail(e){if(done)return;done=true;send("error",String(e&&e.message||e))}function sub(name,fn){try{ad.subscribe(fn,name,window)}catch(e){}}function boot(){try{if(typeof getVPAIDAd!=="function")throw Error("missing-getVPAIDAd");ad=getVPAIDAd();if(!ad||!ad.handshakeVersion("2.0"))throw Error("vpaid-handshake");sub("AdLoaded",function(){try{ad.startAd()}catch(e){fail(e)}});sub("AdStarted",function(){send("started")});sub("AdImpression",function(){send("started")});sub("AdVideoComplete",function(){send("complete")});sub("AdStopped",function(){send("complete")});sub("AdError",fail);ad.initAd(${Number(config.width)},${Number(config.height)},"normal",-1,{AdParameters:${params}},{slot:document.getElementById("slot"),videoSlot:document.getElementById("video"),videoSlotCanAutoPlay:true})}catch(e){fail(e)}}var s=document.createElement("script");s.src=${media};s.onload=boot;s.onerror=function(){fail("vpaid-script-load")};document.head.appendChild(s)})();<\/script></body></html>`;
+function loadImaSdk(source) {
+  if (window.google?.ima) return Promise.resolve(window.google.ima);
+  if (imaSdkPromise) return imaSdkPromise;
+  imaSdkPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = safeHttpUrl(source || DEFAULT_IMA_SDK_URL);
+    script.onload = () => window.google?.ima ? resolve(window.google.ima) : reject(new Error("ima-sdk-unavailable"));
+    script.onerror = () => reject(new Error("ima-sdk-load-error"));
+    document.head.appendChild(script);
+  });
+  return imaSdkPromise;
 }
 
 function renderImage(root, config, machine, ad) {
