@@ -38,7 +38,8 @@
     vpaidStartTimeoutMs: number(data.vpaidStartTimeoutMs, 15000),
     sliderScriptUrl: data.sliderScriptUrl || "",
     sliderName: data.sliderName || "Slider",
-    sliderTimeoutMs: number(data.sliderTimeoutMs, 3000),
+    sliderScriptId: data.sliderScriptId || "",
+    sliderTimeoutMs: number(data.sliderTimeoutMs, 8000),
     sliderCpm: decimal(data.sliderCpm, 0),
     publisherPageUrl: data.publisherPageUrl || document.referrer || location.href,
     cachebuster: data.gamCachebuster || String(Date.now())
@@ -54,7 +55,7 @@
   target.style.cssText = "width:" + config.width + "px;height:" + config.height + "px;max-width:100%;overflow:hidden;box-sizing:border-box;background:transparent";
 
   var player = new URL("v1-price-priority-safe-player.mjs", script.src);
-  player.searchParams.set("v", "20260726-6");
+  player.searchParams.set("v", "20260726-7");
   var module = document.createElement("script");
   module.type = "module";
   module.src = player.toString();
