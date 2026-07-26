@@ -7,9 +7,13 @@
 
   var source = new URL(script.src, window.location.href);
   var release = source.searchParams.get("v") || "20260713-5";
-  var loaderName = release === "20260724-6"
-    ? "v1-commercial-20260724-6.js"
-    : "v1-legacy-20260713-5.js";
+  var configId = String((script.dataset || {}).configId || "").toLowerCase();
+  var moneycontrolSafe = release === "20260724-6" && configId === "moneycontrol.com";
+  var loaderName = moneycontrolSafe
+    ? "v1-price-priority-safe.js"
+    : release === "20260724-6"
+      ? "v1-commercial-20260724-6.js"
+      : "v1-legacy-20260713-5.js";
   var loader = document.createElement("script");
   var loaderUrl = new URL(loaderName, source);
 
