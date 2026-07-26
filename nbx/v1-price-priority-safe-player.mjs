@@ -98,7 +98,7 @@ function normalize(config) {
     auctionBudgetMs: Math.min(10000, Math.max(1000, finiteNumber(config.auctionBudgetMs, 10000))),
     vastStageTimeoutMs: Math.min(10000, Math.max(1000, finiteNumber(config.vastStageTimeoutMs, 10000))),
     globalHardStopMs: Math.min(25000, Math.max(10000, finiteNumber(config.globalHardStopMs, 25000))),
-    passbackTimeoutMs: Math.min(5000, Math.max(500, finiteNumber(config.passbackTimeoutMs, 5000))),
+    passbackTimeoutMs: Math.min(10000, Math.max(500, finiteNumber(config.passbackTimeoutMs, 5000))),
     enablePassback: config.enablePassback === true,
     collapseOnPassbackFailure: config.collapseOnPassbackFailure === true,
     rejectBelowGamRate: config.rejectBelowGamRate !== false,
@@ -111,7 +111,7 @@ function normalize(config) {
     sliderScriptUrl: config.sliderScriptUrl || "",
     sliderName: config.sliderName || "Slider",
     sliderScriptId: config.sliderScriptId || "",
-    sliderTimeoutMs: Math.min(5000, Math.max(500, finiteNumber(config.sliderTimeoutMs, 5000))),
+    sliderTimeoutMs: Math.min(10000, Math.max(500, finiteNumber(config.sliderTimeoutMs, 5000))),
     sliderCpm: finiteNumber(config.sliderCpm, 0),
     vpaidMode: String(config.vpaidMode || "insecure").toLowerCase() === "enabled" ? "enabled" : "insecure",
     vpaidStartTimeoutMs: finiteNumber(config.vpaidStartTimeoutMs, 15000),
@@ -121,25 +121,22 @@ function normalize(config) {
 
 function applyProductionProfile(config) {
   if (String(config.configId || "").toLowerCase() !== "moneycontrol.com") return config;
-  const playstream = array(config.vastDemand).find((item) =>
-    /servg\.playstream\.media\/api\/adserver61\/vast/i.test(String(item?.endpoint || item?.url || ""))
-  );
   return normalize({
     ...config,
-    vastDemand: playstream ? [{ ...playstream, name: "Playstream", allowVpaid: false, timeoutMs: 10000 }] : [],
+    vastDemand: [],
     prebidDemand: [],
     displayScriptDemand: [],
     ortbDemand: [],
     sliderScriptUrl: "https://display.b-cdn.net/scripts/loader.js?file=6a60a9bb5a723c4751c108a6-6a60aa7a5a723c4751c109a2",
     sliderScriptId: "6a60aa7a5a723c4751c109a2",
     sliderName: "Slider",
-    sliderTimeoutMs: 5000,
+    sliderTimeoutMs: 10000,
     adserverScriptDemand: [],
-    adserverHtmlDemand: [{ name: "Nexbid GAM Moneycontrol", frameUrl: "https://nexbid.uk/nbx/gam-moneycontrol-wrapper.html", floorCpm: 0, timeoutMs: 5000 }],
+    adserverHtmlDemand: [{ name: "Nexbid GAM Moneycontrol", frameUrl: "https://nexbid.uk/nbx/gam-moneycontrol-wrapper.html", floorCpm: 0, timeoutMs: 10000 }],
     allowVpaid: false,
     auctionBudgetMs: 10000,
     vastStageTimeoutMs: 10000,
-    passbackTimeoutMs: 5000,
+    passbackTimeoutMs: 10000,
     globalHardStopMs: 25000,
     enablePassback: false
   });
