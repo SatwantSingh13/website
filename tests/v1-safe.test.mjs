@@ -189,6 +189,12 @@ test("player enforces 50 percent for 1000 ms and pauses hidden tabs", () => {
   assert.match(player, /reset\(\)/);
 });
 
+test("video candidate collection budget cannot be shorter than ten seconds", () => {
+  assert.match(player, /auctionBudgetMs: Math\.max\(10000/);
+  assert.match(configPost, /auctionBudgetMs: Math\.max\(10000/);
+  assert.match(dashboard, /auctionBudgetMs: 10000/);
+});
+
 test("player has one auction cycle and no internal refresh loop", () => {
   assert.match(player, /config\.maxAuctionCycles = 1/);
   assert.match(player, /config\.internalRefresh = false/);
@@ -243,7 +249,7 @@ test("production VPAID sends the original expanded VAST tag to IMA", () => {
   assert.match(player, /request\.adTagUrl = expandVastMacros\(ad\.vastTagUrl/);
   assert.match(player, /REFERRER_URL_ESC_ESC/);
   assert.match(loader, /vpaidMode:/);
-  assert.match(loader, /20260726-4/);
+  assert.match(loader, /20260726-5/);
 });
 test("explicit publisher VPAID tag overrides older saved no-VPAID settings", () => {
   assert.match(player, /const runtimeVpaidOptIn = base\.allowVpaid === true/);
@@ -252,14 +258,14 @@ test("explicit publisher VPAID tag overrides older saved no-VPAID settings", () 
 });
 
 test("publisher tag generator emits the VPAID-capable loader and explicit settings", () => {
-  assert.match(dashboard, /v1-price-priority-safe\.js\?v=20260726-2/);
+  assert.match(dashboard, /v1-price-priority-safe\.js\?v=20260726-3/);
   assert.match(dashboard, /data-allow-vpaid/);
   assert.match(dashboard, /data-vpaid-mode/);
   assert.match(dashboard, /data-vpaid-start-timeout-ms/);
 });
 
 test("hosted publisher test page runs the production VPAID tag", () => {
-  assert.match(publisherTest, /v1-price-priority-safe\.js\?v=20260726-2/);
+  assert.match(publisherTest, /v1-price-priority-safe\.js\?v=20260726-3/);
   assert.match(publisherTest, /data-allow-vpaid="true"/);
   assert.match(publisherTest, /data-vpaid-mode="insecure"/);
   assert.match(publisherTest, /data-vpaid-start-timeout-ms="15000"/);

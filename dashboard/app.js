@@ -589,6 +589,7 @@
       configVersion: Number(state.configVersion || 1),
       maxAuctionCycles: 1,
       internalRefresh: false,
+      auctionBudgetMs: 10000,
       serverSideVastResolution: true,
       legacyBrowserVastFallback: false,
       enablePassback: els.enablePassback.checked,
@@ -614,7 +615,7 @@
   }
 
   function applySafePreset() {
-    els.cdnScript.value = "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-2";
+    els.cdnScript.value = "https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-3";
     els.viewabilityThreshold.value = "0.5";
     els.viewabilityTimeMs.value = "1000";
     els.viewabilityWaitTimeoutMs.value = "15000";

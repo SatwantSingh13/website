@@ -16,7 +16,7 @@ True request-level competition requires the separate NexBid Prebid adapter or a 
 
 ```html
 <script
-  src="https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-2"
+  src="https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-3"
   data-config-id="moneycontrol.com--article-mid--300x250--v1"
   data-config-version="1"
   data-publisher-id="moneycontrol"
@@ -58,6 +58,7 @@ Production-safe defaults:
 - continuously visible for 1,000 ms
 - page visibility state is `visible`
 - maximum viewability wait is 15,000 ms
+- video candidate collection budget is at least 10,000 ms
 - no demand call after timeout unless `auctionOnViewabilityTimeout` is explicitly enabled
 
 The continuous timer resets below 50% and pauses while the tab is hidden.
