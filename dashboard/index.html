@@ -1,31 +1,118 @@
-﻿<!doctype html>
+<!doctype html>
 <!-- NexBanner Version 3 commercial unified-auction dashboard. -->
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>NexBanner Version 1 Dashboard</title>
+    <title>NexBid Reporting Dashboard</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark">N</span>
+      <a class="brand" href="/dashboard/" aria-label="NexBid dashboard home">
+        <span class="brand-mark" aria-hidden="true">N</span>
         <div>
-          <strong>NexBanner Version 1</strong>
-          <span>Demand and Tag Dashboard</span>
+          <strong>NEXBID</strong>
+          <span>Reporting Dashboard</span>
         </div>
-      </div>
+      </a>
+      <nav class="dashboard-nav" aria-label="Dashboard sections">
+        <a id="showReport" href="#report" class="nav-link" aria-current="page">Report</a>
+        <a id="showCreateTag" href="#create-tag" class="nav-link">Create Tag</a>
+      </nav>
       <div class="topbar-actions">
-        <a class="secondary-link" href="./invoice-generator/">Invoice Generator</a>
-<a class="secondary-link" href="./GamTester.html">Gam Tester</a>
-        <button id="exportConfig" class="secondary">Export Config</button>
-        <a  id="logoutDashboard"  class="secondary-link"  href="/cdn-cgi/access/logout">  Logout</a>
-
+        <details class="utility-menu">
+          <summary>More tools</summary>
+          <div>
+            <a href="./invoice-generator/">Invoice Generator</a>
+            <a href="./GamTester.html">GAM Tester</a>
+            <button id="exportConfig" class="menu-button">Export Config</button>
+          </div>
+        </details>
+        <a id="logoutDashboard" class="secondary-link logout-link" href="/cdn-cgi/access/logout">Logout</a>
       </div>
     </header>
 
     <main class="layout">
+      <section class="panel output-panel report-panel" id="report">
+        <div class="report-heading">
+          <div class="section-title">
+            <p>Live performance</p>
+            <h1>Reporting overview</h1>
+            <span>Monitor requests, delivery, fill rate and partner performance.</span>
+          </div>
+          <div class="actions report-actions">
+            <button id="refreshReport">Refresh Report</button>
+            <button id="autoRefreshReport" class="secondary">Auto Refresh Off</button>
+          </div>
+        </div>
+
+        <div class="report-filters">
+          <label>
+            Report Scope
+            <select id="reportScope">
+              <option value="all">All Traffic Today (legacy)</option>
+              <option value="publisher">Current Publisher ID</option>
+              <option value="domain">Current Publisher Domain</option>
+              <option value="placement">Current Publisher + Placement</option>
+              <option value="config" selected>Config ID (exact)</option>
+            </select>
+          </label>
+          <label>
+            Config ID
+            <input id="reportConfigId" value="moneycontrol.com" placeholder="Config ID">
+          </label>
+        </div>
+
+        <div class="report-grid">
+          <div><span>Ad Requests</span><strong id="metricAdRequests">0</strong><small>Moneycontrol traffic</small></div>
+          <div><span>Ads Delivered</span><strong id="metricFilledRequests">0</strong><small>Filled requests</small></div>
+          <div><span>Fill Rate</span><strong id="metricFillRate">0%</strong><small>Delivery efficiency</small></div>
+          <div><span>eCPM</span><strong id="metricEcpm">N/A</strong><small>Estimated performance</small></div>
+        </div>
+        <p class="report-note" id="reportTrackingNote">Partner, fill-rate and eCPM measurement starts with the reporting release on 14 July 2026.</p>
+
+        <div class="partner-report">
+          <div class="subsection-heading">
+            <div>
+              <span>Demand performance</span>
+              <h2>Partner delivery</h2>
+            </div>
+          </div>
+          <div class="partner-table-wrap">
+            <table class="partner-table">
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Requests</th>
+                  <th>Ads Delivered</th>
+                  <th>No Fill</th>
+                  <th>Fill Rate</th>
+                  <th>eCPM</th>
+                </tr>
+              </thead>
+              <tbody id="partnerReportBody">
+                <tr><td colspan="6">Partner data will appear after the next live request.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <details class="raw-report">
+          <summary>View raw report data</summary>
+          <textarea id="reportOutput" spellcheck="false" readonly></textarea>
+        </details>
+      </section>
+
+      <details class="workspace-disclosure" id="create-tag">
+        <summary id="create-tag-summary">
+          <span>
+            <small>Configuration workspace</small>
+            <strong>Create Tag</strong>
+          </span>
+          <span class="summary-copy">Publisher setup, demand partners, tag output and preview</span>
+        </summary>
+        <div class="tool-grid">
       <section class="panel setup-panel">
         <div class="section-title">
           <p>Setup</p>
@@ -333,66 +420,6 @@
         <textarea id="tagOutputV2" spellcheck="false" placeholder="Version 2 Testing publisher tag will appear here."></textarea>
       </section>
 
-      <section class="panel output-panel">
-        <div class="section-title">
-          <p>Testing Reports</p>
-          <h2>Realtime Exact Reporting</h2>
-        </div>
-
-        <div class="form-grid">
-          <label>
-            Report Scope
-            <select id="reportScope">
-              <option value="all">All Traffic Today (legacy)</option>
-              <option value="publisher">Current Publisher ID</option>
-              <option value="domain">Current Publisher Domain</option>
-              <option value="placement">Current Publisher + Placement</option>
-              <option value="config" selected>Config ID (exact)</option>
-            </select>
-          </label>
-          <label>
-            Config ID
-            <input id="reportConfigId" value="moneycontrol.com" placeholder="Config ID">
-          </label>
-        </div>
-
-        <div class="actions">
-          <button id="refreshReport" class="secondary">Refresh Report</button>
-          <button id="autoRefreshReport" class="secondary">Auto Refresh Off</button>
-        </div>
-
-        <div class="report-grid">
-          <div><strong id="metricAdRequests">0</strong><span>Moneycontrol Ad Requests</span></div>
-          <div><strong id="metricFilledRequests">0</strong><span>Requests With Ad Delivered</span></div>
-          <div><strong id="metricFillRate">0%</strong><span>Fill Rate</span></div>
-          <div><strong id="metricEcpm">N/A</strong><span>eCPM</span></div>
-        </div>
-        <p class="report-note" id="reportTrackingNote">Partner, fill-rate and eCPM measurement starts with the reporting release on 14 July 2026.</p>
-
-        <div class="partner-report">
-          <h3>Partner Delivery</h3>
-          <div class="partner-table-wrap">
-            <table class="partner-table">
-              <thead>
-                <tr>
-                  <th>Partner</th>
-                  <th>Requests</th>
-                  <th>Ads Delivered</th>
-                  <th>No Fill</th>
-                  <th>Fill Rate</th>
-                  <th>eCPM</th>
-                </tr>
-              </thead>
-              <tbody id="partnerReportBody">
-                <tr><td colspan="6">Partner data will appear after the next live request.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <textarea id="reportOutput" spellcheck="false" readonly></textarea>
-      </section>
-
       <section class="panel preview-panel">
         <div class="section-title">
           <p>Preview</p>
@@ -406,12 +433,56 @@
           </div>
         </div>
       </section>
+        </div>
+      </details>
     </main>
 
-   
+    <script>
+      (function () {
+        var report = document.getElementById("report");
+        var createTag = document.getElementById("create-tag");
+        var reportLink = document.getElementById("showReport");
+        var createTagLink = document.getElementById("showCreateTag");
+
+        function showView(view, updateHash) {
+          var showingCreateTag = view === "create-tag";
+          report.hidden = showingCreateTag;
+          createTag.open = showingCreateTag;
+          reportLink.setAttribute("aria-current", showingCreateTag ? "false" : "page");
+          createTagLink.setAttribute("aria-current", showingCreateTag ? "page" : "false");
+
+          if (updateHash && window.history && window.history.replaceState) {
+            window.history.replaceState(null, "", showingCreateTag ? "#create-tag" : "#report");
+          }
+        }
+
+        reportLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          showView("report", true);
+          report.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        createTagLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          showView("create-tag", true);
+          createTag.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        createTag.addEventListener("toggle", function () {
+          if (createTag.open && !report.hidden) {
+            showView("create-tag", true);
+          } else if (!createTag.open && report.hidden) {
+            showView("report", true);
+          }
+        });
+
+        showView(window.location.hash === "#create-tag" ? "create-tag" : "report", false);
+      })();
+    </script>
     <script src="./app.js?v=price-priority-safe-1"></script>
   </body>
 </html>
+
 
 
 
