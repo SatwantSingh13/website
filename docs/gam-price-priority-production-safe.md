@@ -16,7 +16,7 @@ True request-level competition requires the separate NexBid Prebid adapter or a 
 
 ```html
 <script
-  src="https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-4"
+  src="https://nexbid.uk/nbx/v1-price-priority-safe.js?v=20260726-5"
   data-config-id="moneycontrol.com--article-mid--300x250--v1"
   data-config-version="1"
   data-publisher-id="moneycontrol"
@@ -31,7 +31,8 @@ True request-level competition requires the separate NexBid Prebid adapter or a 
   data-vpaid-start-timeout-ms="15000"
                   data-slider-script-url="https://display.b-cdn.net/scripts/loader.js?file=6a60a9bb5a723c4751c108a6-6a60aa7a5a723c4751c109a2"
                   data-slider-name="Slider"
-                  data-slider-timeout-ms="3000">
+  data-slider-script-id="6a60aa7a5a723c4751c109a2"
+                  data-slider-timeout-ms="8000">
 </script>
 ```
 
