@@ -272,10 +272,20 @@ test("production player enforces VAST then Slider then GAM ordering", () => {
   assert.match(loader, /sliderScriptUrl:/);
 });
 
+test("Moneycontrol disables VAST and bounds Slider and GAM to ten seconds", () => {
+  assert.match(player, /vastDemand: \[\]/);
+  assert.doesNotMatch(player, /name: "Adsolut"/);
+  assert.doesNotMatch(player, /name: "Playstream"/);
+  assert.match(player, /sliderTimeoutMs: 10000/);
+  assert.match(player, /adserverHtmlDemand: \[\{ name: "Nexbid GAM Moneycontrol".*timeoutMs: 10000 \}\]/);
+  assert.match(player, /passbackTimeoutMs: 10000/);
+  assert.match(player, /globalHardStopMs: 25000/);
+});
+
 test("Moneycontrol renders the fixed GAM frame URL as the final candidate", () => {
   assert.match(player, /String\(config\.configId \|\| ""\)\.toLowerCase\(\) === "moneycontrol\.com" && candidate\.frameUrl/);
   assert.match(player, /candidate\.html \|\| candidate\.scriptUrl \|\| moneycontrolFrame/);
-  assert.match(loader, /moneycontrol\.com" \? "20260726-9" : "20260726-7"/);
+  assert.match(loader, /moneycontrol\.com" \? "20260726-11" : "20260726-7"/);
 });
 
 test("hosted publisher test page runs standard VAST Slider GAM flow", () => {
