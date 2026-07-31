@@ -3,7 +3,7 @@
   "contact_address": "Wolverhampton",
   "version": "1.0",
   "ext": {
-    "last_updated": "2026-07-23"
+    "last_updated": "2026-07-31"
   },
   "identifiers": [],
   "sellers": [
@@ -183,6 +183,42 @@
     "name": "ManhuaPlus",
     "domain": "manhuaplus.org",
     "is_confidential": 0
-  }
+  },
+  {
+  "seller_id": "2607012",
+  "seller_type": "PUBLISHER",
+  "is_confidential": 0,
+  "domain": "opera.com",
+  "name": "Opera"
+},
+{
+  "seller_id": "2607013",
+  "seller_type": "PUBLISHER",
+  "is_confidential": 0,
+  "domain": "news24online.com",
+  "name": "News24 Online"
+},
+{
+  "seller_id": "2607014",
+  "seller_type": "PUBLISHER",
+  "is_confidential": 0,
+  "domain": "hindi.news24online.com",
+  "name": "News24 Hindi"
+},
+{
+  "seller_id": "2607015",
+  "seller_type": "PUBLISHER",
+  "is_confidential": 0,
+  "domain": "en.e24bollywood.com",
+  "name": "E24 Bollywood English"
+},
+{
+  "seller_id": "2607016",
+  "seller_type": "PUBLISHER",
+  "is_confidential": 0,
+  "domain": "e24bollywood.com",
+  "name": "E24 Bollywood"
+}
+      
   ]
 }
